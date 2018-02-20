@@ -7,10 +7,15 @@ module topLevel(
 		output 		  spitx,
 		output 		  spirx, 
 		input 		  spiclk,
+		input 		  spisel, 
 		
 		input 		  uartrx, // Receive data into UART
 		output 		  uarttx, // Transmit data from UART 
 
+		// SWD
+		inout 		  swdpin,
+		output 		  swdclkpin,
+ 
 		// Leds....
 		output 		  sync_led,
 		output 		  txInd_led, // Transmitted UART Data indication
@@ -19,7 +24,7 @@ module topLevel(
 		
 		// Config and housekeeping
 		input 		  clkIn,
-		input 		  rstIn,
+//		input 		  rstIn,
 
 		// Other indicators
 		output reg 	  D5,
@@ -27,9 +32,10 @@ module topLevel(
 		output reg 	  D3,
 		output reg 	  D2,
 		output reg 	  cts
-				  
+
+		,output 		  yellow 
 `ifdef INCLUDE_SUMP2
-                , // Include SUMP2 connections
+   		, // Include SUMP2 connections
 		input 		  uartrx,
 		output 		  uarttx,
 		input wire [15:0] events_din
@@ -49,6 +55,11 @@ module topLevel(
    wire 		   clk;
    wire 		   clkOut;
    wire 		   BtraceClk;
+   wire 		   swdInDat;
+   wire 		   swdOutDat;
+   wire 		   swclk;
+   
+   
   
 `ifdef NO_GB_IO_AVAILABLE
 // standard input pin for trace clock,
@@ -59,13 +70,30 @@ SB_GB BtraceClk0 (
  );
 `else
 // Buffer for trace input clock
-SB_GB_IO #(.PIN_TYPE(6'b000000)) BtraceClk0
+SB_GB_IO #(.PIN_TYPE(6'b0000_00)) BtraceClk0
 (
   .PACKAGE_PIN(traceClk),
   .GLOBAL_BUFFER_OUTPUT(BtraceClk)
 );
 `endif
 
+
+SB_IO #(.PULLUP(1), .PIN_TYPE(6'b1010_01)) SwdDatPin
+(
+ .PACKAGE_PIN (swdpin),
+ .D_IN_0 (swdInDat),
+ .D_OUT_0 (swdOutDat),
+ .OUTPUT_ENABLE(swdDir)
+);
+
+/* Simple output pin for the clock */
+SB_IO #(.PULLUP(0), .PIN_TYPE(6'b0110_01)) SwdClkPin
+(
+ .PACKAGE_PIN (swdclkpin),
+ .D_OUT_0 (swclk)
+ );
+
+   
 // Trace input pins config   
 SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0)) MtraceIn0
 (
@@ -99,18 +127,25 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0)) MtraceIn3
  .D_IN_1 (tTraceDinb[3])
  );
 
-SB_IO #(.PULLUP(1), .PIN_TYPE(6'b000001)) SpiClkIn
+SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0000_01)) SpiClkIn
 (
  .PACKAGE_PIN (spiclk),
  .D_IN_0 (spiclkIn),
  );
 
-SB_IO #(.PULLUP(1), .PIN_TYPE(6'b000001)) SpiRxIn
+SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0000_01)) SpiSelIn
+(
+ .PACKAGE_PIN (spisel),
+ .D_IN_0 (spiselIn),
+ );
+
+SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0000_01)) SpiRxIn
 (
  .PACKAGE_PIN (spirx),
  .INPUT_CLK (spiclkIn),
  .D_IN_0 (spirxIn),
  );
+
 
    // DDR input data
    wire [MAX_BUS_WIDTH-1:0] tTraceDina;
@@ -118,6 +153,7 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b000001)) SpiRxIn
 
    wire 		    spiclkIn;
    wire 		    spirxIn;
+   wire 		    spiselIn;   
    
  		    
    wire 		    wclk;
@@ -180,12 +216,46 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b000001)) SpiRxIn
                       .DataOverf(txOvf_led)          // Too much data in buffer
  		      );
 
- spi transmitter (
+   wire 		    spirxReq;
+   wire 		    spitxReq;
+   wire [31:0]		    dataToSWD;
+   wire [31:0]		    dataFromSWD;
+   wire [4:0] 		    SWDbits;
+   wire 		    SWDBusy;
+   wire [2:0] 		    s;
+
+   wire 		    swdDir;
+   wire 		    useParity;
+   wire 		    parityGood;
+ 		    
+swd swdIf (
+	    .clk(clkOut), // The master clock for this module
+	    .rst(rst), // Synchronous reset.
+
+	    .rxReq(spirxReq), // Indicator of a reception request
+	    .txReq(spitxReq), // Indicator of a transmission request
+
+	   .dataToSWD(dataToSWD),
+	    .bits(SWDbits),
+
+	   .dataFromSWD(dataFromSWD),
+	   .parityGood(parityGood),
+	   .busy(SWDBusy),
+
+	   .useParity(useParity),
+	   .swdIsOutput(swdDir),
+	   .swdIn(swdInDat),
+	   .swdOut(swdOutDat),	   
+	   .swclk(swclk),
+	    );
+   
+spi transmitter (
 		  .clk(clkOut), // The master clock for this module
 		  .rst(rst), // Synchronous reset.
 
 		  .tx(spitx), // Outgoing serial line
 		  .rx(spirxIn), // Incoming serial line
+		  .sel(spiselIn),
 		  .dClk(spiclkIn),
 		  .transmitIn(dataReady), // Signal to transmit
 		  .tx_word(filter_data), // Byte to transmit
@@ -193,7 +263,19 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b000001)) SpiRxIn
 		  .is_transmitting(txInd_led), // Low when transmit line is idle.
 		  .sync(sync_led),
 		  .widthEnc(widthSet),
-		  .rxFrameReset(frameReset)
+		  .rxFrameReset(frameReset),
+
+		  // Messages to/from SWD subsystem
+		  .rxReq(spirxReq), // Request reception over SWD
+		  .txReq(spitxReq), // Request transmission over SWD
+		  .useParity(useParity), // Do we want parity support?		  
+		  .SWDinputData(dataToSWD), // Data to go over SWD bus
+		  
+		  .bits(SWDbits), // Number of bits for SWD bus
+		  
+		  .SWDoutputData(dataFromSWD), // Data sourced from SWD bus
+		  .SWDoutputParity(parityGood),
+		  .SWDbusy(SWDBusy)  // Flag indicating SWD bus is busy
 		  );
    
  // Set up clock for 48Mhz with input of 12MHz
@@ -215,7 +297,9 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b000001)) SpiRxIn
    reg [25:0] 		   clkCount;
 
    // We don't want anything awake until the clocks are stable
-   assign rst=(lock&rstIn);
+//   assign rst=(lock&rstIn);
+   assign rst=0;
+//!lock;
    
    always @(posedge clkOut)
      begin
@@ -302,26 +386,27 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b000001)) SpiRxIn
    
    assign reset_loc = 0;
    //assign reset_core = ~ pll_lock;// didn't fit
-   
+
    // Hookup FTDI RX and TX pins to MesaBus Phy
    assign mesa_wi_loc = uartrx;
    assign uarttx     = mesa_ro_loc;
    
-   assign events_loc[3:0] = tTraceDina;
-   assign events_loc[7:4] = tTraceDinb;   
-   assign events_loc[8] = clkIn;
-   assign events_loc[9] = txOvf_led;
+   assign events_loc[2:0] = s;
 
-   assign events_loc[10] = BtraceClk;
-   assign events_loc[11] = wdavail;
-   assign events_loc[12] = packetr;
-   assign events_loc[13] = packetwd;
+   assign events_loc[4:3] = 2'b0;
    
-   assign events_loc[14] = dataReady;
-//   assign events_loc[15] = txFree;
-//   assign events_loc[11] = frameReset;
+   assign events_loc[5] = spitxReq;
+   assign events_loc[6] = spirxReq;
+   assign events_loc[7] = SWDBusy;
 
-   assign events_loc[15] = sync_led;
+   assign events_loc[9:8] = 2'b0;
+   assign events_loc[10] = spiselIn;
+   
+   assign events_loc[11] = swdInDat;
+   assign events_loc[12] = swclk;
+   assign events_loc[13] = swdDir;   
+   assign events_loc[14] = clkIn;
+   assign events_loc[15] = swdOutDat;
    
   
 //   assign events_loc[7:0]   = events_din[7:0];

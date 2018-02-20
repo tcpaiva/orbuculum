@@ -1,7 +1,8 @@
 # Define the line below to get SUMP2 incorporated
 INCLUDE_SUMP2=1
+INCLUDE_SWD=1
 
-RVAL ?= 1 #  Replace with $$RANDOM to get a randomised build
+RVAL ?= $($RANDOM) #  Replace with $$RANDOM to get a randomised build
 
 SUPPORTED_HARDWARE=ICE40HX8K_B_EVN ICE40HX1K_STICK_EVN
 
@@ -9,11 +10,9 @@ SUPPORTED_HARDWARE=ICE40HX8K_B_EVN ICE40HX1K_STICK_EVN
 
 BUFFER_FLAGS=
 
-ifdef INCLUDE_SUMP2
-BUFFER_FLAGS+=-DINCLUDE_SUMP2
-endif
-
 ORB_SOURCE_FILES=toplevel.v spi.v traceIF.v packSend.v
+
+SWD_SOURCE_FILES=swd.v
 
 SUMP_SOURCE_FILES = sump2/core.v sump2/mesa2lb.v sump2/mesa_core.v sump2/mesa_phy.v
 SUMP_SOURCE_FILES+= sump2/spi_byte2bit.v sump2/time_stamp.v sump2/mesa_ascii2nibble.v
@@ -25,6 +24,12 @@ SOURCE_FILES=$(ORB_SOURCE_FILES)
 
 ifdef INCLUDE_SUMP2
 SOURCE_FILES+=$(SUMP_SOURCE_FILES)
+BUFFER_FLAGS+=-DINCLUDE_SUMP2
+endif
+
+ifdef INCLUDE_SWD
+SOURCE_FILES+=$(SWD_SOURCE_FILES)
+BUFFER_FLAGS+=-DINCLUDE_SWD
 endif
 
 # supporting rules:
@@ -85,5 +90,4 @@ traceIF_GBIO.blif: $(SOURCE_FILES)
 
 traceIF_GB.blif: BUFFER_FLAGS+=-DNO_GB_IO_AVAILABLE
 traceIF_GB.blif: $(SOURCE_FILES)
-
 

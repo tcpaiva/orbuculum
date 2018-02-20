@@ -126,6 +126,7 @@ def main():
   # Establish TCP Socket Connection
   try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM );
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1);
     server_socket.bind(('', tcp_port ));
     server_socket.listen(5);
     print(" [OK]   Connection to TCP Socket "+str(tcp_port)+" established." );

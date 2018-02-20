@@ -32,7 +32,7 @@ endif
 
 # Overall system defines for compilation
 ifdef DEBUG
-GCC_DEFINE= -DDEBUG
+GCC_DEFINE= -DDEBUG_ON
 OPT_LEVEL = 
 else
 GCC_DEFINE=
@@ -72,6 +72,60 @@ App_DIR=Src
 INCLUDE_PATHS += -IInc -I$(OLOC)
 
 ORBUCULUM_CFILES = $(App_DIR)/$(ORBUCULUM).c $(App_DIR)/filewriter.c $(App_DIR)/ftdispi.c
+ORBUCULUM_CFILES += $(App_DIR)/iceproglite.c
+
+# BMP Component Files
+# ===================
+GCC_DEFINE+=-DBLACKORB -DPLATFORM_HAS_DEBUG
+BMP_DIR=bmp
+INCLUDE_PATHS += -I$(BMP_DIR)/include -I$(BMP_DIR)/target -I$(BMP_DIR)
+INCLUDE_PATHS += -I$(BMP_DIR)/platforms/common -I$(BMP_DIR)/platforms/blackorb
+
+ORBUCULUM_CFILES += $(BMP_DIR)/morse.c    $(BMP_DIR)/gdb_main.c    $(BMP_DIR)/exception.c
+ORBUCULUM_CFILES += $(BMP_DIR)/platforms/common/timing.c   
+ORBUCULUM_CFILES += $(BMP_DIR)/platforms/blackorb/platform.c
+ORBUCULUM_CFILES += $(BMP_DIR)/platforms/blackorb/jtagtap.c   
+ORBUCULUM_CFILES += $(BMP_DIR)/platforms/blackorb/gdb_if.c
+ORBUCULUM_CFILES += $(BMP_DIR)/platforms/blackorb/swdptap_blackorb.c
+ORBUCULUM_CFILES += $(BMP_DIR)/command.c
+ORBUCULUM_CFILES += $(BMP_DIR)/gdb_packet.c
+ORBUCULUM_CFILES += $(BMP_DIR)/gdb_hostio.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/efm32.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/target.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/nrf51.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/jtagtap_generic.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/stm32f1.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/lpc43xx.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/cortexa.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/sam4l.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/kinetis.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/adiv5_swdp.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/lpc15xx.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/cortexm.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/sam3x.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/adiv5.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/adiv5_jtagdp.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/stm32l0.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/samd.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/stm32l4.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/jtag_scan.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/lpc11xx.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/stm32f4.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/lpc_common.c
+ORBUCULUM_CFILES += $(BMP_DIR)/target/lmi.c
+ORBUCULUM_CFILES += $(BMP_DIR)/crc32.c
+ORBUCULUM_CFILES += $(BMP_DIR)/hex_utils.c
+
+
+#ORBUCULUM_CFILES += $(BMP_DIR)/target/flashstub/efm32.c
+#ORBUCULUM_CFILES += $(BMP_DIR)/target/flashstub/nrf51.c
+#ORBUCULUM_CFILES += $(BMP_DIR)/target/flashstub/stm32f1.c
+#ORBUCULUM_CFILES += $(BMP_DIR)/target/flashstub/stm32f4_x8.c
+#ORBUCULUM_CFILES += $(BMP_DIR)/target/flashstub/stm32f4_x32.c
+#ORBUCULUM_CFILES += $(BMP_DIR)/target/flashstub/stm32l4.c
+#ORBUCULUM_CFILES += $(BMP_DIR)/target/flashstub/lmi.c
+
+
 ORBCAT_CFILES = $(App_DIR)/$(ORBCAT).c 
 ORBTOP_CFILES = $(App_DIR)/$(ORBTOP).c $(App_DIR)/symbols.c 
 ORBDUMP_CFILES = $(App_DIR)/$(ORBDUMP).c

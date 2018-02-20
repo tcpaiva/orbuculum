@@ -16,7 +16,8 @@ set_io cts		A15	# CTSn pin of FT2232H
 set_io spitx            P12     # SPI MISO
 set_io spirx            P11     # SPI MOSI
 set_io spiclk           R11     # SPI CLK
-set_io rstIn		R12	# SPI CS pin of FT2232H
+#set_io rstIn		R12	# SPI CS pin of FT2232H
+set_io spisel		R12	# SPI CS pin of FT2232H
 
 # Oscillator clock for FPGA PLL
 set_io clkIn		J3	# connected to 12MHz xtal
@@ -26,6 +27,10 @@ set_io sync_led		B5	# LED0 (D9, red)
 set_io txOvf_led	B4	# LED1 (D8, red)
 set_io txInd_led	A2	# LED2 (D7, red)
 set_io heartbeat_led	A1	# LED3 (D6, red)
+
+# SWD connections
+set_io swdpin           J14      # SWD io
+set_io swdclkpin        K14      # SWD Clk
 
 # scope channels (non-standard)
 set_io yellow		P15	# J2 pin 6
