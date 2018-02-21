@@ -33,7 +33,8 @@ module topLevel(
 		output reg 	  D2,
 		output reg 	  cts
 
-		,output 		  yellow 
+		,output 		  yellow
+		,output 		  green
 `ifdef INCLUDE_SUMP2
    		, // Include SUMP2 connections
 		input 		  uartrx,
@@ -42,7 +43,10 @@ module topLevel(
 `endif		
 		);      
 
-	    
+
+   assign yellow=spiselIn;
+   assign green=spiclkIn;
+   
    // Parameters =============================================================================
 
    parameter MAX_BUS_WIDTH=4;  // Maximum bus width that system is set for...not more than 4!! 

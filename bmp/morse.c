@@ -84,8 +84,8 @@ bool morse_update(void)
 		}
 		if ((c >= 'A') && (c <= 'Z')) {
 			c -= 'A';
-			code = morse_letter[c].code;
-			bits = morse_letter[c].bits;
+			code = morse_letter[(uint8_t)c].code;
+			bits = morse_letter[(uint8_t)c].bits;
 		} else {
 			code = 0; bits = 4;
 		}

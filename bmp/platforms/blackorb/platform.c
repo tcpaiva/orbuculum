@@ -53,12 +53,12 @@ void platform_buffer_flush(void)
 int platform_buffer_write(const uint8_t *data, int size)
 
 {
-
+  return 0;
 }
 
 int platform_buffer_read(uint8_t *data, int size)
 {
-
+  return 0;
 }
 
 const char *platform_target_voltage(void)

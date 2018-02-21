@@ -170,7 +170,7 @@ module spi (
 			     if (rx_data==8'hA5) // Deal with frame reset 
 			       rxFrameReset<=1;
 			     else
-			       if ({rx_data[7:2],2'b0}==8'h10) // Handle request for any SWO frames to be sent
+			       if ({rx_data[7:2],2'b0}==8'h80) // Handle request for any SWO frames to be sent
 				 begin
 				    rxFrameReset<=0;
 				    spiState<=SEND_SWO;
@@ -181,7 +181,7 @@ module spi (
 				    // We need these right now to be able to make sense of the following...
 				    words_remaining <= 8;
 				    realTransmission <= transmitIn;
-				    tx_data = {4'h0,!transmitIn,width,sync,8'h00};
+				    tx_data = {transmitIn,4'h0,width,sync,8'h00};				    
 				 end // if ({rx_data[7:2],2'b0}==8'h10)
 			  end // case: 2'b10
 
@@ -237,8 +237,13 @@ module spi (
 			end
 		      else
 			begin
-			   tx_data = 0;
-			   spiState<=WAIT_COMMAND;
+			   /* Now we spew SWO frames until forced back to idle */
+			   spiState<=SEND_SWO;
+			   words_remaining <= 8;
+			   realTransmission <= transmitIn;
+			   tx_data = {transmitIn,4'h0,width,sync,8'h00};				    			   
+			   //tx_data = 0;
+			   //spiState<=WAIT_COMMAND;
 			end
 		   end
 		 
@@ -271,8 +276,12 @@ module spi (
 		      tx_data={!SWDbusyi[2],7'b0010000,8'h0};
 		      if (SWDbusyi[2:1]==2'b10) 
 			begin
-			   txReq<=0;
-			   spiState<=WAIT_COMMAND;
+			   spiState<=SEND_SWO;
+			   words_remaining <= 8;
+			   realTransmission <= transmitIn;
+			   tx_data = {transmitIn,4'h0,width,sync,8'h00};			   
+//			   txReq<=0;
+//			   spiState<=WAIT_COMMAND;
 			end
 		   end
 		 
@@ -284,7 +293,7 @@ module spi (
 			begin
 			   words_remaining <= 8;
 			   realTransmission <= transmitIn;
-			   tx_data = {!transmitIn,4'h0,width,sync,8'h00};
+			   tx_data = {transmitIn,4'h0,width,sync,8'h00};
 			end
 		      else
 			begin

@@ -29,13 +29,13 @@ set_io txInd_led	A2	# LED2 (D7, red)
 set_io heartbeat_led	A1	# LED3 (D6, red)
 
 # SWD connections
-set_io swdpin           J14      # SWD io
-set_io swdclkpin        K14      # SWD Clk
+set_io swdpin           D14      # SWD io
+set_io swdclkpin        B16      # SWD Clk
 
 # scope channels (non-standard)
 set_io yellow		P15	# J2 pin 6
 set_io green		P16	# J2 pin 5
-set_io blue		R15	# J2 pin 4
+#set_io blue		R15	# J2 pin 4
 
 # other indicators (currently for SUMP2)
 set_io D5		C5	# LED4 (D5, red)

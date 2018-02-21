@@ -103,8 +103,8 @@ __dll int ftdispi_open( struct ftdispi_context *fsc,
         fsc->memsize = DEFAULT_MEM_SIZE;
     }
 
-    FTDI_CHECK( ftdi_write_data_set_chunksize( &fsc->fc, 512 ),
-                "SET CHUNK 512", fsc->fc );
+    FTDI_CHECK( ftdi_write_data_set_chunksize( &fsc->fc, 256 ),
+                "SET CHUNK 256", fsc->fc );
     FTDI_CHECK( ftdi_set_interface( &fsc->fc, INTERFACE_A ), "SET INT",
                 fsc->fc );
     FTDI_CHECK( ftdi_usb_reset( &fsc->fc ), "RESET", fsc->fc );
@@ -308,8 +308,8 @@ __dll int ftdispi_write_read( struct ftdispi_context *fsc,
     fsc->mem[i++] = fsc->bitini;
     fsc->mem[i++] = BIT_DIR;
     FTDI_CHECK( ftdi_write_data( &fsc->fc, fsc->mem, i ), "WR", fsc->fc );
-
-    return ftdispi_wait( fsc, BIT_P_CS, fsc->bitini, RETRY_MAX );
+    return FTDISPI_ERROR_NONE;
+    //    return ftdispi_wait( fsc, BIT_P_CS, fsc->bitini, RETRY_MAX );
 }
 
 __dll int ftdispi_write( struct ftdispi_context *fsc,
