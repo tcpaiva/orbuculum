@@ -72,7 +72,7 @@
     #define FTDI_HS_TRANSFER_SIZE (FTDI_PACKET_SIZE*FTDI_NUM_FRAMES)
     #define FPGA_AWAKE (0x90)
     #define FPGA_ACTIVE (0x80)
-#define GUARD_LENGTH ((3*64)-10)
+    #define GUARD_LENGTH ((3*64)-10)
     /* Protocol messages */
     #define PROT_TX(l,p) ((((l)-1)&0x1F)|((p!=0)<<5))          /* Transmit l bits, with or without parity */
     #define PROT_RX(l,p) (0x40|((((l)-1)&0x1F)|((p!=0)<<5)))  /* Receive l bits, with or without parity */

@@ -265,7 +265,7 @@ __dll int ftdispi_write_read( struct ftdispi_context *fsc,
                               uint8_t gpo )
 {
     int i, n, r;
-    struct ftdi_transfer_control *tc=NULL;
+    struct ftdi_transfer_control *tc = NULL;
 
     ASSERT_CHECK( !fsc, "CTX NOT INITIALIZED", FTDISPI_ERROR_CTX );
     ASSERT_CHECK( !( ( wbuf && wcount ) || ( rbuf && rcount ) ),
@@ -310,7 +310,7 @@ __dll int ftdispi_write_read( struct ftdispi_context *fsc,
     {
         FTDI_CHECK( r = ftdi_transfer_data_done( tc ), "ASYN RD", fsc->fc );
     }
-    
+
     return FTDISPI_ERROR_NONE;
 }
 
