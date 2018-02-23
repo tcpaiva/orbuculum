@@ -1,5 +1,6 @@
 The contributors to this project, in alphabetic order, are;
 
+Uwe Bonnes                         Fixes to high speed spi handler for ft2232h
 Devan Lai     devan.lai@gmail.com  Fixups for Linux build issues & warnings removal
 Dave Marples  dave@marples.net     Original code and current maintainer
 David Piegdon                      Build fixes for Gentoo and common sense around fpga

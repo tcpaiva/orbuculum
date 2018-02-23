@@ -5,7 +5,7 @@
 
 // ====================================================================================================
 
-bool iceprogliteProgram(const char *filename, bool force, int vid, int pid, int ifnum);
+bool iceprogliteProgram( const char *filename, bool force, int vid, int pid, int ifnum );
 
 // ====================================================================================================
 #endif

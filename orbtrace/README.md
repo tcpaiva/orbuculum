@@ -1,9 +1,10 @@
 ORBTrace Development
 ====================
 
-This is the development status for the ORBTrace parallel TRACE hardware. Its very unlikely you want to be here but, just in case you do, this is built using Clifford Wolfs' icestorm toolchain and currently targets a either a lattice iCE40HX-8K board or the lattice icestick.
+his is the development status for the ORBTrace parallel TRACE hardware. It is working but it's fragile and incomplete. It may well eat your cat.  Its very unlikely you want to be here but, just in case you do, this is built using Clifford Wolfs' icestorm toolchain and currently targets a either a lattice iCE40HX-8K board or the lattice icestick.
 
-It is very much work in progress. It is currently functional for 1 and 2 bit trace widths.
+It is very much work in progress. It is functional for 1, 2 and 4 bit trace widths, but only for the HX8 board at the moment. It also integrates BlackMesaLabs SUMP2 and BlackMagic Probe.
+
 
 To build it perform;
 
@@ -12,12 +13,32 @@ cd src
 make ICE40HX8K_B_EVN
 
 ```
-or;
 
-```
-cd src
-make ICE40HX1K_STICK_EVN
+The pinouts are;
 
-```
+# Trace signals
+traceDin[0]	C16	# J2 pin 37
+traceDin[1]	D16	# J2 pin 35
+traceDin[2]	E16	# J2 pin 33
+traceDin[3]	F16	# J2 pin 29
+traceClk	H16	# J2 pin 25
 
-Information on how to integrate it with orbuculum (hint, the `-o` option) is in te main README.
+# SWD connections
+swdpin           D14      # SWD io
+swdclkpin        B16      # SWD Clk
+
+The LEDs show the following things;
+
+Trace Sync       LED0 (D9, red)
+Trace Overflow   LED1 (D8, red)
+Transmission     LED2 (D7, red)
+Heartbeat        LED3 (D6, red)
+
+There are a number of other pins defined, you can see them in the pcf file in the source directory.  By default the sump2 pins are allocated to internal signals, but they can be re-allocated to external pins in the pcf.
+
+When you start this version of orbuculum it will start a BlackMagic Probe service at localhost:2000 which you can connect to using;
+
+`gdb>target extended-remote localhost:2000`
+
+Once again, this is incomplete and functionally dodgy. Use at your own risk!!
+

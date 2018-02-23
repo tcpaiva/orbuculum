@@ -2,7 +2,7 @@
  * SWO Splitter for Blackmagic Probe and TTL Serial Interfaces
  * ===========================================================
  *
- * Copyright (C) 2017  Dave Marples  <dave@marples.net>
+ * Copyright (C) 2017/18  Dave Marples  <dave@marples.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,15 +63,16 @@
     #define FTDI_ICE_BITFILE "bitfile.bin"
     #define FTDI_VID  (0x0403)
     #define FTDI_PID  (0x6010)
+    //    #define FTDI_PID  (0x9999)
     #define FTDI_INTERFACE (INTERFACE_A)
     #define FTDI_UART_INTERFACE (INTERFACE_B)
-    #define FTDI_INTERFACE_SPEED CLOCK_MAX_SPEEDX5
+    #define FTDI_INTERFACE_SPEED (CLOCK_MAX_SPEEDX5)
     #define FTDI_PACKET_SIZE  (17)
     #define FTDI_NUM_FRAMES   (20)  // If you make this too large the driver drops frames FIXME
     #define FTDI_HS_TRANSFER_SIZE (FTDI_PACKET_SIZE*FTDI_NUM_FRAMES)
     #define FPGA_AWAKE (0x90)
     #define FPGA_ACTIVE (0x80)
-    #define GUARD_LENGTH ((4*62)-9) // Length is optimised to be full packets over USB bus
+#define GUARD_LENGTH ((3*64)-10)
     /* Protocol messages */
     #define PROT_TX(l,p) ((((l)-1)&0x1F)|((p!=0)<<5))          /* Transmit l bits, with or without parity */
     #define PROT_RX(l,p) (0x40|((((l)-1)&0x1F)|((p!=0)<<5)))  /* Receive l bits, with or without parity */
@@ -81,15 +82,15 @@
     #define TX_ACTIVE   (0x10)
     #define COMPLETE    (0x80)
     #define RX_ACTIVE   (0x08)
-    
 
-#ifdef BLACKORB
-#include "general.h"
-#include "gdb_main.h"
-#endif
 
-//#define DUMP_FTDI_BYTES // Uncomment to get data dump of bytes from FTDItransfer
-#define REPORT_FRAME_FULLNESS // Uncomment to find out how full each transfer frame is
+    #ifdef BLACKORB
+        #include "general.h"
+        #include "gdb_main.h"
+    #endif
+
+    //#define DUMP_FTDI_BYTES // Uncomment to get data dump of bytes from FTDItransfer
+    //#define REPORT_FRAME_FULLNESS // Uncomment to find out how full each transfer frame is
 #endif
 
 
@@ -204,7 +205,7 @@ struct
     pthread_t bmpthread;
 #endif
 #ifdef INCLUDE_FPGA_SUPPORT
-  bool feederExit;
+    bool feederExit;
     struct ftdi_context *ftdi;
     struct ftdispi_context ftdifsc;
     uint8_t dbgWriteStr[7]; // String of octets to be written to the debug interface
@@ -1232,12 +1233,12 @@ int _processOptions( int argc, char *argv[] )
 }
 // ====================================================================================================
 #ifdef BLACKORB
-static void *_run_bmp(void *arg )
+static void *_run_bmp( void *arg )
 
 {
-  platform_init();
-  gdb_main();
-  return NULL;
+    platform_init();
+    gdb_main();
+    return NULL;
 }
 #endif
 // ====================================================================================================
@@ -1444,30 +1445,36 @@ int serialFeeder( void )
 // ====================================================================================================
 #ifdef INCLUDE_FPGA_SUPPORT
 
-bool fpgaDbgRead(uint32_t len, bool withParity, uint32_t *dataStore)
+bool fpgaDbgRead( uint32_t len, bool withParity, uint32_t *dataStore )
 
 {
-  /* Copy in the material to be written */
-  memcpy(_r.dbgWriteStr,(char []){0x00,PROT_RST,PROT_RX(len,withParity)},3);
+    /* Copy in the material to be written */
+    memcpy( _r.dbgWriteStr, ( char [] )
+    {
+        0x00, PROT_RST, PROT_RX( len, withParity )
+    }, 3 );
 
-  _r.dbgWriteLen=3;
-  _r.dbgReadLen=len;
-  sem_wait(&_r.dready);
+    _r.dbgWriteLen = 3;
+    _r.dbgReadLen = len;
+    sem_wait( &_r.dready );
 
-  *dataStore=_r.dbgReadData;
-  return !(_r.dbgGoodRead&_r.dbgReadParity);
+    *dataStore = _r.dbgReadData;
+    return !( _r.dbgGoodRead & _r.dbgReadParity );
 }
 // ====================================================================================================
-bool fpgaDbgWrite(uint32_t val, uint32_t len, bool withParity)
+bool fpgaDbgWrite( uint32_t val, uint32_t len, bool withParity )
 
 {
-  /* Copy in the material to be written */
-  memcpy(_r.dbgWriteStr,(char []){0x00,PROT_RST,PROT_TX(len,withParity),(val)&0xff,(val>>8)&0xff,(val>>16)&0xff,((val>>24)&0xff)},7);
+    /* Copy in the material to be written */
+    memcpy( _r.dbgWriteStr, ( char [] )
+    {
+        0x00, PROT_RST, PROT_TX( len, withParity ), ( val ) & 0xff, ( val >> 8 ) & 0xff, ( val >> 16 ) & 0xff, ( ( val >> 24 ) & 0xff )
+    }, 7 );
 
-  _r.dbgWriteLen=3+((len+7)/8);
+    _r.dbgWriteLen = 3 + ( ( len + 7 ) / 8 );
 
-  sem_wait(&_r.dready);
-  return true;
+    sem_wait( &_r.dready );
+    return true;
 }
 // ====================================================================================================
 int fpgaFeeder( void )
@@ -1479,21 +1486,22 @@ int fpgaFeeder( void )
     uint8_t *d;
     uint8_t *c;
 
-    if (!iceprogliteProgram(FTDI_ICE_BITFILE, false, FTDI_VID, FTDI_PID, FTDI_INTERFACE))
-      {
-	return -3;
-      }
-    
+    if ( !iceprogliteProgram( FTDI_ICE_BITFILE, false, FTDI_VID, FTDI_PID, FTDI_INTERFACE ) )
+    {
+        return -3;
+    }
+
     // FTDI Chip takes a little while to reset itself
     // usleep( 400000 );
 
-    sem_init(&_r.dready,0,0);
-    
-    _r.feederExit=false;
+    sem_init( &_r.dready, 0, 0 );
+
+    _r.feederExit = false;
+
     while ( !_r.feederExit )
     {
         _r.ftdi = ftdi_new();
-	ftdi_set_interface( _r.ftdi, FTDI_INTERFACE );
+        ftdi_set_interface( _r.ftdi, FTDI_INTERFACE );
 
         do
         {
@@ -1505,7 +1513,7 @@ int fpgaFeeder( void )
                 usleep( 50000 );
             }
         }
-        while (( f < 0 ) && (!_r.feederExit));
+        while ( ( f < 0 ) && ( !_r.feederExit ) );
 
         genericsReport( V_INFO, "Port opened" EOL );
         f = ftdispi_open( &_r.ftdifsc, _r.ftdi, FTDI_INTERFACE );
@@ -1530,100 +1538,114 @@ int fpgaFeeder( void )
 
         TPIUDecoderForceSync( &_r.t, 0 );
 
-	while (!_r.feederExit)
-	  {
-	    if (_r.dbgWriteLen)
-	      {
-		/* There's a message to be written */
-		t = ftdispi_write_read( &_r.ftdifsc, _r.dbgWriteStr, _r.dbgWriteLen, cbw, FTDI_HS_TRANSFER_SIZE, FPGA_ACTIVE );
-		_r.dbgWriteLen=0;
-		
-		c = cbw;
+        while ( !_r.feederExit )
+        {
+            if ( _r.dbgWriteLen )
+            {
+                /* There's a message to be written */
+                t = ftdispi_write_read( &_r.ftdifsc, _r.dbgWriteStr, _r.dbgWriteLen, cbw, GUARD_LENGTH, FPGA_ACTIVE );
+                _r.dbgWriteLen = 0;
 
-		/* Initially assume no good data back */
-		_r.dbgGoodRead=false;
-		
-		if (_r.dbgReadLen)
-		  {
-		    /* We've been asked for the returned stuff */
-		    c=cbw;
-		    int32_t l=_r.dbgReadLen;
+                c = cbw;
 
-		    /* Search forward for 'data returned' flag */
-		    while ((c-cbw<GUARD_LENGTH) && (((*c)&0x80)==0)) c++;
+                /* Initially assume no good data back */
+                _r.dbgGoodRead = false;
 
-		    if (cbw-c<GUARD_LENGTH)
-		      {
-			_r.dbgGoodRead=true;
-			_r.dbgReadData=0;
-			_r.dbgReadParity=((*c&(1<<2))!=0);
-			/* Yup, we got good data, return it */
-			while (l>0)
-			  {
-			    _r.dbgReadData|=((*++c)<<(_r.dbgReadLen-l));
-			    l-=8;
-			  }
-		      }
-		    /* Mask off the bits we asked for */
-		    if (_r.dbgReadLen<32)
-		      _r.dbgReadData&=((1<<_r.dbgReadLen)-1);
-		    _r.dbgReadLen=0;
-		  }
-		/* We have finished - let the caller know */
-		sem_post(&_r.dready);
-	      }
-	    else
-	      {
-		/* There is no message to be written, so just request SWO */
-		t = ftdispi_write_read( &_r.ftdifsc, (char []){0x00,PROT_RST,PROT_SWO(options.orbtraceWidth)} ,3, cbw, FTDI_HS_TRANSFER_SIZE, FPGA_ACTIVE );
-		c = cbw;
-	      }
+                if ( _r.dbgReadLen )
+                {
+                    /* We've been asked for the returned stuff */
+                    c = cbw;
+                    int32_t l = _r.dbgReadLen;
 
-	    /* However we got here, c now points to the first potentially valid SWO frame header ... so process until we run out of data */
+                    /* Search forward for 'data returned' flag */
+                    while ( ( c - cbw < GUARD_LENGTH ) && ( ( ( *c ) & 0x80 ) == 0 ) )
+                    {
+                        c++;
+                    }
 
-	    d = scratchBuffer;
+                    if ( cbw - c < GUARD_LENGTH )
+                    {
+                        _r.dbgGoodRead = true;
+                        _r.dbgReadData = 0;
+                        _r.dbgReadParity = ( ( *c & ( 1 << 2 ) ) != 0 );
 
-	    while ((FTDI_HS_TRANSFER_SIZE-(c-cbw))>=FTDI_PACKET_SIZE)
-	      {
-		if ( ! (( *c ) & 0x80 ))
-		  { 
-		    // This frame has no useful data
-                     c += FTDI_PACKET_SIZE;
-                     continue; 
-		  } 
-		else 
-		  { 
-		    // This frame contains something - copy and feed it, excluding header byte
-		    memcpy( d, &c[1], FTDI_PACKET_SIZE - 1 );
-                     d += FTDI_PACKET_SIZE - 1; 
+                        /* Yup, we got good data, return it */
+                        while ( l > 0 )
+                        {
+                            _r.dbgReadData |= ( ( *++c ) << ( _r.dbgReadLen - l ) );
+                            l -= 8;
+                        }
+                    }
 
-                     for ( uint32_t e = 1; e < FTDI_PACKET_SIZE; e++ ) 
-                     { 
+                    /* Mask off the bits we asked for */
+                    if ( _r.dbgReadLen < 32 )
+                    {
+                        _r.dbgReadData &= ( ( 1 << _r.dbgReadLen ) - 1 );
+                    }
+
+                    _r.dbgReadLen = 0;
+                }
+
+                /* We have finished - let the caller know */
+                sem_post( &_r.dready );
+            }
+            else
+            {
+                /* There is no message to be written, so just request SWO */
+                t = ftdispi_write_read( &_r.ftdifsc, ( char [] )
+                {
+                    0x00, PROT_RST, PROT_SWO( options.orbtraceWidth )
+                }, 3, cbw, FTDI_HS_TRANSFER_SIZE, FPGA_ACTIVE );
+                c = cbw;
+            }
+
+            /* However we got here, c now points to the first potentially valid SWO frame header ... so process until we run out of data */
+
+            d = scratchBuffer;
+
+            while ( ( FTDI_HS_TRANSFER_SIZE - ( c - cbw ) ) >= FTDI_PACKET_SIZE )
+            {
+                if ( ! ( ( *c ) & 0x80 ) )
+                {
+                    // This frame has no useful data
+                    c += FTDI_PACKET_SIZE;
+                    continue;
+                }
+                else
+                {
+                    // This frame contains something - copy and feed it, excluding header byte
+                    memcpy( d, &c[1], FTDI_PACKET_SIZE - 1 );
+                    d += FTDI_PACKET_SIZE - 1;
+
+                    for ( uint32_t e = 1; e < FTDI_PACKET_SIZE; e++ )
+                    {
 #ifdef DUMP_FTDI_BYTES
-                         printf( "%02X ", c[e] );
-#endif 
-			 _protocolPump( c[e] ); 
-                     } 
+                        printf( "%02X ", c[e] );
+#endif
+                        _protocolPump( c[e] );
+                    }
 
-                     c += FTDI_PACKET_SIZE;
+                    c += FTDI_PACKET_SIZE;
 #ifdef DUMP_FTDI_BYTES
-                     printf( "\n" ); 
-#endif 
-		  } 
-	      } 
-#ifdef REPORT_FRAME_FULLNESS 
-	    genericsReport( V_WARN, "RXED frame of %d/%d full packets (%3d%%)    \r", 
-			    ( d - scratchBuffer ) / ( FTDI_PACKET_SIZE - 1 ), FTDI_NUM_FRAMES, ( ( d - scratchBuffer ) * 100 ) / ( FTDI_HS_TRANSFER_SIZE - FTDI_NUM_FRAMES ) ); 
-#endif 
+                    printf( "\n" );
+#endif
+                }
+            }
 
-	    _sendToClients( ( d - scratchBuffer ), scratchBuffer ); 
-	  }
+#ifdef REPORT_FRAME_FULLNESS
+            genericsReport( V_WARN, "RXED frame of %d/%d full packets (%3d%%)    \r",
+                            ( d - scratchBuffer ) / ( FTDI_PACKET_SIZE - 1 ), FTDI_NUM_FRAMES, ( ( d - scratchBuffer ) * 100 ) / ( FTDI_HS_TRANSFER_SIZE - FTDI_NUM_FRAMES ) );
+#endif
+
+            _sendToClients( ( d - scratchBuffer ), scratchBuffer );
+        }
 
         genericsReport( V_WARN, "Exit Requested (%d, %s)" EOL, t, ftdi_get_error_string( _r.ftdi ) );
 
-	ftdispi_setgpo(&_r.ftdifsc, FPGA_AWAKE);
-	ftdispi_close( &_r.ftdifsc, 1 );
+        ftdispi_setgpo( &_r.ftdifsc, FPGA_AWAKE );
+        ftdispi_close( &_r.ftdifsc, 1 );
     }
+
     return 0;
 }
 
@@ -1631,8 +1653,8 @@ int fpgaFeeder( void )
 void fpgaFeederClose( int dummy )
 
 {
-  (void)dummy;
-  _r.feederExit=true;
+    ( void )dummy;
+    _r.feederExit = true;
 }
 #endif
 // ====================================================================================================
@@ -1714,19 +1736,21 @@ int main( int argc, char *argv[] )
 
     /* If we've got BMP integrated let's get that started next, in its own thread */
 #ifdef BLACKORB
+
     if ( pthread_create( &( _r.bmpthread ), NULL, &_run_bmp, NULL ) )
-      {
+    {
         genericsReport( V_ERROR, "Failed to create BMP" EOL );
         exit( -1 );
-      }
+    }
+
 #endif
     /* Using the exit construct rather than return ensures any atexit gets called */
 #ifdef INCLUDE_FPGA_SUPPORT
 
     if ( options.orbtrace )
     {
-      signal( SIGINT, fpgaFeederClose );
-      exit( fpgaFeeder() );
+        signal( SIGINT, fpgaFeederClose );
+        exit( fpgaFeeder() );
     }
 
 #endif

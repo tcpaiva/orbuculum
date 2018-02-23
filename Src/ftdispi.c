@@ -3,45 +3,41 @@
  *
  * @author Stany MARCEL <stanypub@gmail.com>
  *
- * @brief libftdispi permits to use FTDI component in SPI master
- * mode. Require libftdi
+ * @brief libftdispi permits to use FTDI component in SPI master mode. Require
+ * libftdi
  *
  * BSD License
  *
- * Copyright ©2010, Stany MARCEL <stanypub@gmail.com> All rights
- * reserved.
+ * Copyright ©2010, Stany MARCEL <stanypub@gmail.com> All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * modification, are permitted provided that the following conditions are met:
  *
- * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ * Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
  *
- * Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the
- * distribution.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  *
- * Neither the name of the owner nor the names of its contributors may
- * be used to endorse or promote products derived from this software
- * without specific prior written permission.
+ * Neither the name of the owner nor the names of its contributors may be used
+ * to endorse or promote products derived from this software without specific
+ * prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "ftdispi.h"
 
 #define BBMODE_NORMAL 1
@@ -65,34 +61,37 @@
 #define SPI_MAX_MSG_SIZE (64*1024)
 #define DEFAULT_MEM_SIZE ((SPI_MAX_MSG_SIZE) + 9)
 
+
 #define RETRY_MAX       10
 #define RETRY_TIME      1000
 
-#define FTDI_CHECK(FUN, MSG, CTX) do {              \
+
+#define FTDI_CHECK(FUN, MSG, CTX) do {                  \
         if ((FUN) < 0)                                  \
         {                                               \
-            fprintf(stderr,             \
-                    "%s: %s\n",         \
-                    MSG,                \
-                    ftdi_get_error_string(&CTX));   \
-            return FTDISPI_ERROR_LIB;       \
+            fprintf(stderr,                             \
+                    "%s: %s\n",                         \
+                    MSG,                                \
+                    ftdi_get_error_string(&CTX));       \
+            return FTDISPI_ERROR_LIB;                   \
         }                                               \
     } while (0)
 
 #define ASSERT_CHECK(TEST, MSG, RVAL) do {      \
         if ((TEST))                             \
         {                                       \
-            fprintf(stderr,         \
-                    "ASSERT: %s\n", MSG);   \
-            return RVAL;            \
+            fprintf(stderr,                     \
+                    "ASSERT: %s\n", MSG);       \
+            return RVAL;                        \
         } } while (0)
 
 static int ftdispi_realloc( struct ftdispi_context *fsc, size_t size );
-static int ftdispi_wait( struct ftdispi_context *fsc, uint8_t mask,
-                         uint8_t value, int maxtry );
+static int ftdispi_wait( struct ftdispi_context *fsc, uint8_t mask, uint8_t value, int maxtry );
+
 
 __dll int ftdispi_open( struct ftdispi_context *fsc,
-                        struct ftdi_context *fc, int interface )
+                        struct ftdi_context     *fc,
+                        int interface )
 {
     ASSERT_CHECK( !fc || !fsc, "CTX NOT INITIALIZED", FTDISPI_ERROR_CTX );
     memset( fsc, 0, sizeof( *fsc ) );
@@ -103,17 +102,13 @@ __dll int ftdispi_open( struct ftdispi_context *fsc,
         fsc->memsize = DEFAULT_MEM_SIZE;
     }
 
-    FTDI_CHECK( ftdi_write_data_set_chunksize( &fsc->fc, 256 ),
-                "SET CHUNK 256", fsc->fc );
-    FTDI_CHECK( ftdi_set_interface( &fsc->fc, INTERFACE_A ), "SET INT",
-                fsc->fc );
+    FTDI_CHECK( ftdi_write_data_set_chunksize( &fsc->fc, 512 ), "SET CHUNK 512", fsc->fc );
+    FTDI_CHECK( ftdi_set_interface( &fsc->fc, INTERFACE_A ), "SET INT", fsc->fc );
     FTDI_CHECK( ftdi_usb_reset( &fsc->fc ), "RESET", fsc->fc );
-    FTDI_CHECK( ftdi_set_latency_timer( &fsc->fc, 1 ), "SET LAT 1ms", fsc->fc );
-    FTDI_CHECK( ftdi_setflowctrl( &fsc->fc, SIO_RTS_CTS_HS ), "RTS/CTS",
-                fsc->fc );
-    /*FTDI_CHECK(ftdi_set_bitmode(&fsc->fc, 0, 0), "RESET MPSSE", fsc->fc); */
-    FTDI_CHECK( ftdi_set_bitmode( &fsc->fc, 0, BBMODE_SPI ), "SET SPI MODE",
-                fsc->fc );
+    FTDI_CHECK( ftdi_set_latency_timer( &fsc->fc, 2 ), "SET LAT 2ms", fsc->fc );
+    FTDI_CHECK( ftdi_setflowctrl( &fsc->fc, SIO_RTS_CTS_HS ), "RTS/CTS", fsc->fc );
+    /*FTDI_CHECK(ftdi_set_bitmode(&fsc->fc, 0, 0), "RESET MPSSE", fsc->fc);*/
+    FTDI_CHECK( ftdi_set_bitmode( &fsc->fc, 0, BBMODE_SPI ), "SET SPI MODE", fsc->fc );
     fsc->wr_cmd = MPSSE_DO_WRITE;
     fsc->rd_cmd = MPSSE_DO_READ | MPSSE_READ_NEG;
     fsc->bitini = BIT_P_CS;
@@ -123,9 +118,10 @@ __dll int ftdispi_open( struct ftdispi_context *fsc,
     return FTDISPI_ERROR_NONE;
 }
 
-__dll int ftdispi_setclock( struct ftdispi_context *fsc, uint32_t speed )
+__dll int ftdispi_setclock( struct ftdispi_context *fsc,
+                            uint32_t speed )
 {
-    uint8_t buf[3] = { 0, 0, 0 };
+    uint8_t  buf[3] = { 0, 0, 0 };
     uint32_t div;
     uint32_t base;
 
@@ -156,8 +152,7 @@ __dll int ftdispi_setclock( struct ftdispi_context *fsc, uint32_t speed )
     if ( base == CLOCK_MAX_SPEEDX5 )
     {
         buf[0] = TCK_X5;
-        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 1 ), "SET CLK X5",
-                    fsc->fc );
+        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 1 ), "SET CLK X5", fsc->fc );
     }
 
     buf[0] = TCK_DIVISOR;
@@ -167,7 +162,9 @@ __dll int ftdispi_setclock( struct ftdispi_context *fsc, uint32_t speed )
     return FTDISPI_ERROR_NONE;
 }
 
-__dll int ftdispi_setloopback( struct ftdispi_context *fsc, int active )
+
+__dll int ftdispi_setloopback( struct ftdispi_context *fsc,
+                               int active )
 {
     uint8_t buf[1] = { 0 };
 
@@ -176,29 +173,31 @@ __dll int ftdispi_setloopback( struct ftdispi_context *fsc, int active )
     if ( active )
     {
         buf[0] = LOOPBACK_START;
-        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 1 ), "SET LOOP",
-                    fsc->fc );
+        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 1 ), "SET LOOP", fsc->fc );
     }
     else
     {
         buf[0] = LOOPBACK_END;
-        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 1 ), "SET NO LOOP",
-                    fsc->fc );
+        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 1 ), "SET NO LOOP", fsc->fc );
     }
 
     return FTDISPI_ERROR_NONE;
 }
 
+
 __dll int ftdispi_setmode( struct ftdispi_context *fsc,
                            int csh,
                            int cpol,
-                           int cpha, int lsbfirst, int bitmode, int gpoini )
+                           int cpha,
+                           int lsbfirst,
+                           int bitmode,
+                           int gpoini )
 {
     uint8_t buf[3] = { 0, 0, 0 };
 
     ASSERT_CHECK( !fsc, "CTX NOT INITIALIZED", FTDISPI_ERROR_CTX );
     fsc->wr_cmd = MPSSE_DO_WRITE | ( bitmode ? MPSSE_BITMODE : 0 );
-    fsc->rd_cmd = MPSSE_DO_READ | ( bitmode ? MPSSE_BITMODE : 0 );
+    fsc->rd_cmd = MPSSE_DO_READ  | ( bitmode ? MPSSE_BITMODE : 0 );
     fsc->bitini = ( csh ? BIT_P_CS : 0 ) | ( BIT_P_GX & gpoini );
 
     if ( !cpol )
@@ -218,7 +217,7 @@ __dll int ftdispi_setmode( struct ftdispi_context *fsc,
     else
     {
         /* CLK IDLE == 1 */
-        fsc->bitini |= BIT_P_SK;
+        fsc->bitini |=  BIT_P_SK;
 
         if ( !cpha )
         {
@@ -251,29 +250,38 @@ __dll int ftdispi_setmode( struct ftdispi_context *fsc,
     if ( ftdispi_wait( fsc, BIT_P_CS | BIT_P_GX, fsc->bitini, RETRY_MAX ) )
     {
         /* I still don't know why sometime the command must be resent */
-        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 3 ), "WR INI",
-                    fsc->fc );
+        FTDI_CHECK( ftdi_write_data( &fsc->fc, buf, 3 ), "WR INI", fsc->fc );
     }
 
     return ftdispi_wait( fsc, BIT_P_CS | BIT_P_GX, fsc->bitini, RETRY_MAX );
 }
 
+
 __dll int ftdispi_write_read( struct ftdispi_context *fsc,
                               const void *wbuf,
                               uint16_t wcount,
-                              void *rbuf, uint16_t rcount, uint8_t gpo )
+                              void *rbuf,
+                              uint16_t rcount,
+                              uint8_t gpo )
 {
     int i, n, r;
+    struct ftdi_transfer_control *tc=NULL;
 
     ASSERT_CHECK( !fsc, "CTX NOT INITIALIZED", FTDISPI_ERROR_CTX );
     ASSERT_CHECK( !( ( wbuf && wcount ) || ( rbuf && rcount ) ),
                   "NO CMD", FTDISPI_ERROR_CMD );
-    n = wcount + ( rcount ? 9 : 6 );
+    n = wcount + ( rcount ? 10 : 6 );
     ASSERT_CHECK( ftdispi_realloc( fsc, n ), "REALLOC", FTDISPI_ERROR_MEM );
+
+    if ( rcount && rbuf )
+    {
+        FTDI_CHECK( tc = ftdi_read_data_submit( &fsc->fc, rbuf, rcount ), "Async subm", fsc->fc );
+    }
 
     i = 0;
     fsc->mem[i++] = SET_BITS_LOW;
-    fsc->mem[i++] = ( ( 0x0F & ( fsc->bitini ^ BIT_P_CS ) ) | ( BIT_P_GX & gpo ) );
+    fsc->mem[i++] = ( ( 0x0F & ( fsc->bitini ^ BIT_P_CS ) ) |
+                      ( BIT_P_GX & gpo ) );
     fsc->mem[i++] = BIT_DIR;
 
     if ( wcount && wbuf )
@@ -290,41 +298,40 @@ __dll int ftdispi_write_read( struct ftdispi_context *fsc,
         fsc->mem[i++] = fsc->rd_cmd;
         fsc->mem[i++] = ( rcount - 1 ) & 0xFF;
         fsc->mem[i++] = ( ( rcount - 1 ) >> 8 ) & 0xFF;
-        FTDI_CHECK( ftdi_write_data( &fsc->fc, fsc->mem, i ), "[WR]RD",
-                    fsc->fc );
-
-        for ( n = 0; n < rcount; )
-        {
-            FTDI_CHECK( r =
-                                    ftdi_read_data( &fsc->fc, rbuf + n,
-                                                    rcount - n ), "RD", fsc->fc );
-            n += r;
-        }
-
-        i = 0;
+        fsc->mem[i++] = SEND_IMMEDIATE;
     }
 
     fsc->mem[i++] = SET_BITS_LOW;
     fsc->mem[i++] = fsc->bitini;
     fsc->mem[i++] = BIT_DIR;
-    FTDI_CHECK( ftdi_write_data( &fsc->fc, fsc->mem, i ), "WR", fsc->fc );
+    FTDI_CHECK( ftdi_write_data( &fsc->fc, fsc->mem, i ), "[WR]RD", fsc->fc );
+
+    if ( rcount && rbuf )
+    {
+        FTDI_CHECK( r = ftdi_transfer_data_done( tc ), "ASYN RD", fsc->fc );
+    }
+    
     return FTDISPI_ERROR_NONE;
-    //    return ftdispi_wait( fsc, BIT_P_CS, fsc->bitini, RETRY_MAX );
 }
 
 __dll int ftdispi_write( struct ftdispi_context *fsc,
-                         const void *buf, uint16_t count, uint8_t gpo )
+                         const void *buf,
+                         uint16_t count,
+                         uint8_t gpo )
 {
     return ftdispi_write_read( fsc, buf, count, 0, 0, gpo );
 }
 
 __dll int ftdispi_read( struct ftdispi_context *fsc,
-                        void *buf, uint16_t count, uint8_t gpo )
+                        void *buf,
+                        uint16_t count,
+                        uint8_t gpo )
 {
     return ftdispi_write_read( fsc, 0, 0, buf, count, gpo );
 }
 
-__dll int ftdispi_setgpo( struct ftdispi_context *fsc, uint8_t gpo )
+__dll int ftdispi_setgpo( struct ftdispi_context *fsc,
+                          uint8_t gpo )
 {
     uint8_t buf[3];
 
@@ -342,7 +349,10 @@ __dll int ftdispi_setgpo( struct ftdispi_context *fsc, uint8_t gpo )
     return ftdispi_wait( fsc, BIT_P_GX, fsc->bitini, RETRY_MAX );
 }
 
-__dll int ftdispi_close( struct ftdispi_context *fsc, int close_ftdi )
+
+
+__dll int ftdispi_close( struct ftdispi_context *fsc,
+                         int close_ftdi )
 {
     ASSERT_CHECK( !fsc, "CTX NOT INITIALIZED", FTDISPI_ERROR_CTX );
 
@@ -362,6 +372,7 @@ __dll int ftdispi_close( struct ftdispi_context *fsc, int close_ftdi )
     return FTDISPI_ERROR_NONE;
 }
 
+
 static int ftdispi_realloc( struct ftdispi_context *fsc, size_t size )
 {
     uint8_t *p;
@@ -380,8 +391,8 @@ static int ftdispi_realloc( struct ftdispi_context *fsc, size_t size )
     return FTDISPI_ERROR_NONE;
 }
 
-static int ftdispi_wait( struct ftdispi_context *fsc, uint8_t mask,
-                         uint8_t value, int maxtry )
+
+static int ftdispi_wait( struct ftdispi_context *fsc, uint8_t mask, uint8_t value, int maxtry )
 {
     uint8_t cmd = GET_BITS_LOW;
     uint8_t ret = 0;

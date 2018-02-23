@@ -1,5 +1,7 @@
-Orbuculum - ARM Cortex Debug Output Processing Tools
-====================================================
+Orbuculum + BackOrb - ARM Cortex Debug and Output Processing Tools
+==================================================================
+
+*** THIS IS THE DEVELOPMENT BRANCH - ARE YOU SURE YOU WANT TO BE HERE? ***
 
 An Orbuculum is a Crystal Ball, used for seeing things that would 
  be otherwise invisible. A  nodding reference to (the) BlackMagic
@@ -9,8 +11,9 @@ You can find information about using this suite on the Embedded Rambling
 blog at http://shadetail.com/.
 
 *This program is in heavy development. Check back frequently for new versions 
-with additional functionality. The current status (23rd Jan) is that the fpga
-code appears stable for 1, 2 and 4 bit parallel port operation, and support has been integrated into orbuclum for it.  It's not fully documented though so you might be digging through source files to use it.*
+with additional functionality. The current status (23rd Feb) is that the fpga
+code appears stable for 1, 2 and 4 bit parallel port operation, and Blackmagic Probe has been
+integrated too...see the documentation in the orbtrace directory for more information.
 
 The code is in daily use now and small issues
 are patched as they are found. The parallel trace hardware using a iCE40HX-8K breakout board and the icestorm tools is stable and hardware is in development.

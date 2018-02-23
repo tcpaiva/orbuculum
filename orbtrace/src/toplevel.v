@@ -35,6 +35,7 @@ module topLevel(
 
 		,output 		  yellow
 		,output 		  green
+		,output blue
 `ifdef INCLUDE_SUMP2
    		, // Include SUMP2 connections
 		input 		  uartrx,
@@ -44,8 +45,11 @@ module topLevel(
 		);      
 
 
-   assign yellow=spiselIn;
+   assign yellow=swclk;
    assign green=spiclkIn;
+   assign blue=spiselIn;
+//spirxIn;
+   
    
    // Parameters =============================================================================
 
@@ -247,6 +251,7 @@ swd swdIf (
 	   .busy(SWDBusy),
 
 	   .useParity(useParity),
+           .speedDivisor(6'd12),    // Be careful that the host application waits long enough for transmission to complete!!
 	   .swdIsOutput(swdDir),
 	   .swdIn(swdInDat),
 	   .swdOut(swdOutDat),	   

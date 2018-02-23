@@ -13,6 +13,12 @@ set_io uarttx		B12	# TX pin of FT2232H
 set_io cts		A15	# CTSn pin of FT2232H
 
 # SPI connection to PC
+#set_io spitx            J14 #//P12     # SPI MISO
+#set_io spirx            G14 #//P11     # SPI MOSI
+#set_io spiclk           F14 #//R11     # SPI CLK
+##set_io rstIn		R12	# SPI CS pin of FT2232H
+#set_io spisel		K14 #//R12	# SPI CS pin of FT2232H
+
 set_io spitx            P12     # SPI MISO
 set_io spirx            P11     # SPI MOSI
 set_io spiclk           R11     # SPI CLK
@@ -35,7 +41,7 @@ set_io swdclkpin        B16      # SWD Clk
 # scope channels (non-standard)
 set_io yellow		P15	# J2 pin 6
 set_io green		P16	# J2 pin 5
-#set_io blue		R15	# J2 pin 4
+set_io blue		R15	# J2 pin 4
 
 # other indicators (currently for SUMP2)
 set_io D5		C5	# LED4 (D5, red)
