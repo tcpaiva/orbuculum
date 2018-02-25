@@ -1,47 +1,58 @@
 `default_nettype none
 
 module topLevel(
+		// Config and housekeeping
+		// =======================
+		input 		  clkIn,
+				  //		input 		  rstIn,
+		output reg 	  cts,
+
+		// Trace Input
+		// ===========
 		input [3:0] 	  traceDin, // Port is always 4 bits wide, even if we use less
 		input 		  traceClk, // Supporting clock for input - must be on a global clock pin
 
+`ifdef INCLUDE_SWD
+		// SWD Output
+		// ==========
+		inout 		  swdpin,
+		output 		  swdclkpin,
+`endif
+		
+		// SPI Output to Host
+		// ==================
 		output 		  spitx,
 		output 		  spirx, 
 		input 		  spiclk,
 		input 		  spisel, 
-		
-		input 		  uartrx, // Receive data into UART
-		output 		  uarttx, // Transmit data from UART 
-
-		// SWD
-		inout 		  swdpin,
-		output 		  swdclkpin,
  
 		// Leds....
+		// ========
 		output 		  sync_led,
 		output 		  txInd_led, // Transmitted UART Data indication
 		output 		  txOvf_led,
 		output 		  heartbeat_led,
 		
-		// Config and housekeeping
-		input 		  clkIn,
-//		input 		  rstIn,
+
+		// Debug
+		// =====
+		output 		  yellow,
+		output 		  green,
+		output 		  blue
+				  
+				  `ifdef INCLUDE_SUMP2
+				  ,
+		input 		  uartrx, // Receive data into UART
+		output 		  uarttx, // Transmit data from UART 
 
 		// Other indicators
 		output reg 	  D5,
 		output reg 	  D4,
 		output reg 	  D3,
 		output reg 	  D2,
-		output reg 	  cts
 
-		,output 		  yellow
-		,output 		  green
-		,output blue
-`ifdef INCLUDE_SUMP2
-   		, // Include SUMP2 connections
-		input 		  uartrx,
-		output 		  uarttx,
 		input wire [15:0] events_din
-`endif		
+				  `endif		
 		);      
 
 
@@ -85,7 +96,7 @@ SB_GB_IO #(.PIN_TYPE(6'b0000_00)) BtraceClk0
 );
 `endif
 
-
+`ifdef INCLUDE_SWD
 SB_IO #(.PULLUP(1), .PIN_TYPE(6'b1010_01)) SwdDatPin
 (
  .PACKAGE_PIN (swdpin),
@@ -100,7 +111,7 @@ SB_IO #(.PULLUP(0), .PIN_TYPE(6'b0110_01)) SwdClkPin
  .PACKAGE_PIN (swdclkpin),
  .D_OUT_0 (swclk)
  );
-
+`endif
    
 // Trace input pins config   
 SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0)) MtraceIn0
@@ -171,20 +182,26 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0000_01)) SpiRxIn
    
   // -----------------------------------------------------------------------------------------
   traceIF #(.BUSWIDTH(MAX_BUS_WIDTH)) traceif (
-                   .clk(clkOut), 
+		   // Housekeeping
+		   // ============
+		   .clk(clkOut), 
                    .rst(rst), 
 
 		   // Downwards interface to trace pins
+		   // =================================
                    .traceDina(tTraceDina),       // Tracedata rising edge ... 1-n bits
                    .traceDinb(tTraceDinb),       // Tracedata falling edge (LSB) ... 1-n bits		   
                    .traceClkin(BtraceClk),       // Tracedata clock
 		   .width(widthSet),             // Current trace buffer width 
 
 		   // Upwards interface to packet processor
+		   // =====================================
 		   .WdAvail(wdavail),            // Flag indicating word is available
 		   .PacketWd(packetwd),          // The next packet word
 		   .PacketReset(packetr),        // Flag indicating to start again
 
+		    // Status
+		    // ======
    		   .sync(sync_led)               // Indicator that we are in sync
 		);		  
    
@@ -204,18 +221,24 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0000_01)) SpiRxIn
    wire [2:0] 		    widthSet;
    
    packSend marshall (
+  		      // Housekeeping
+		      // ============
 		      .clk(clkOut), 
 		      .rst(rst), 
 
+		      // Status
+		      // ======
 		      .sync(sync_led), // Indicator of if we are in sync
 
 		      // Downwards interface to target interface
+		      // =======================================
 		      .wrClk(BtraceClk),             // Clock for write side operations to fifo
 		      .WdAvail(wdavail),             // Flag indicating word is available
 		      .PacketReset(packetr),         // Flag indicating to start again
 		      .PacketWd(packetwd),           // The next packet word
 		      
 		      // Upwards interface to serial (or other) handler
+		      // ==============================================
 		      .rdClk(spiclkIn),
                       .FrameReady(dataReady),
 		      .DataVal(filter_data),         // Output data value
@@ -224,6 +247,7 @@ SB_IO #(.PULLUP(1), .PIN_TYPE(6'b0000_01)) SpiRxIn
                       .DataOverf(txOvf_led)          // Too much data in buffer
  		      );
 
+`ifdef INCLUDE_SWD
    wire 		    spirxReq;
    wire 		    spitxReq;
    wire [31:0]		    dataToSWD;
@@ -257,6 +281,7 @@ swd swdIf (
 	   .swdOut(swdOutDat),	   
 	   .swclk(swclk),
 	    );
+`endif
    
 spi transmitter (
 		  .clk(clkOut), // The master clock for this module
@@ -274,7 +299,9 @@ spi transmitter (
 		  .widthEnc(widthSet),
 		  .rxFrameReset(frameReset),
 
+`ifdef INCLUDE_SWD		 
 		  // Messages to/from SWD subsystem
+		  // ==============================
 		  .rxReq(spirxReq), // Request reception over SWD
 		  .txReq(spitxReq), // Request transmission over SWD
 		  .useParity(useParity), // Do we want parity support?		  
@@ -285,6 +312,7 @@ spi transmitter (
 		  .SWDoutputData(dataFromSWD), // Data sourced from SWD bus
 		  .SWDoutputParity(parityGood),
 		  .SWDbusy(SWDBusy)  // Flag indicating SWD bus is busy
+`endif
 		  );
    
  // Set up clock for 48Mhz with input of 12MHz

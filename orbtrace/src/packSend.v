@@ -28,7 +28,7 @@ module packSend (
  		);
 
    // Internals ==============================================================================
-   parameter BUFFLENLOG2=12;
+   parameter BUFFLENLOG2=10;
 
    reg [15:0] 			 opbuffmem[0:(2**BUFFLENLOG2)-1]; // Output buffer packet memory
 

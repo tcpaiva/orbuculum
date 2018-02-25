@@ -58,9 +58,11 @@ clean:
 	-rm -f *.asc
 	-rm -f *.bin
 
-$(SUPPORTED_HARDWARE):%:%.bin
+ICE40HX8K_B_EVN:%:%.bin
 	iceprog -S $<
 
+ICE40HX1K_STICK_EVN:%:%.bin
+	iceprog $<
 # bitmap conversion stage:
 
 %.bin: %.asc
