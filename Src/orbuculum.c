@@ -1537,7 +1537,8 @@ int fpgaFeeder( void )
         }
 
         TPIUDecoderForceSync( &_r.t, 0 );
-
+	ITMDecoderInit( &_r.i, true );
+	
         while ( !_r.feederExit )
         {
             if ( _r.dbgWriteLen )
@@ -1591,11 +1592,11 @@ int fpgaFeeder( void )
             }
             else
             {
-                /* There is no message to be written, so just request SWO */
+                /* There is no message to be written, so just request TRACE */
                 t = ftdispi_write_read( &_r.ftdifsc, ( char [] )
                 {
-                    0x00, PROT_RST, PROT_SWO( options.orbtraceWidth )
-                }, 3, cbw, FTDI_HS_TRANSFER_SIZE, FPGA_ACTIVE );
+                    PROT_SWO( options.orbtraceWidth )
+                }, 1, cbw, FTDI_HS_TRANSFER_SIZE, FPGA_ACTIVE );
                 c = cbw;
             }
 

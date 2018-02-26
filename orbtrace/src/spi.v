@@ -170,7 +170,10 @@ module spi (
 		  /* Collect the bits we need, 16 bits if nessessary */
 		  if (bitcount==7)
 		    if (twobytes==1'b1)
-		      twobytes<=1'b0;
+		      begin
+			 twobytes<=1'b0;
+			 tx_data={tx_data[14:0],1'b0};
+		      end			 
 		    else
 		      begin
 			 /* Move along the busy status */
@@ -198,7 +201,7 @@ module spi (
 					 end // if (rx_data!=8'h00)
 				    end // case: 2'b00
 				  
-				  2'b10: // SWO Management Request --------------------------------------------
+				  2'b10: // Trace Management Request --------------------------------------------
 				    begin
 				       rxReq<=0;
 				       if (rx_data==8'hA5) // Deal with frame reset 
@@ -358,7 +361,8 @@ module spi (
 		       // Reset next data request if it's stretched for long enough
 		       tx_free<=0;
 		       tx_data={tx_data[14:0],1'b0};
-		    end // else: !if(bitcount==0)
+		    end // else: !if(twobytes==1'b1)
+		  
 	       end // else: !if(rst)
 	  end
      end // always @ (posedge dClk)

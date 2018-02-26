@@ -380,7 +380,7 @@ define dwtCycEna
     end
   end
 end
-document dwtPostInit
+document dwtCycEna
 dwtCycEna <0|1> Enable or disable CYCCNT
 end
 # ====================================================================
@@ -455,7 +455,7 @@ define ITMTXEna
     end
   end
 end
-document ITMSWOEna
+document ITMTXEna
 ITMTXEna <0|1> 0-DWT packets are not forwarded to the ITM
                1-DWT packets are output to the ITM
 end

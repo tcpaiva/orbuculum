@@ -1,6 +1,6 @@
 # Define the line below to get SUMP2 incorporated
-INCLUDE_SUMP2=1
-INCLUDE_SWD=1
+#INCLUDE_SUMP2=1
+#INCLUDE_SWD=1
 
 RVAL ?= $($RANDOM) #  Replace with $$RANDOM to get a randomised build
 
