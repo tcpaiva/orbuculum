@@ -1,6 +1,6 @@
 #VERBOSE=1
 DEBUG=1
-WITH_FPGA=1
+WITH_FPGA?=1
 
 CFLAGS=-DVERSION="\"0.30\""
 
@@ -51,9 +51,10 @@ LDLIBS = -L/usr/local/lib -lusb-1.0 -lelf -lbfd -lz -ldl -liberty
 LDLIBS += -lpthread
 #endif
 
-ifdef WITH_FPGA
+ifeq ($(WITH_FPGA),1)
 CFLAGS+=-DINCLUDE_FPGA_SUPPORT
 LDLIBS += -lftdi1
+FPGA_CFILES=$(App_DIR)/ftdispi.c
 endif
 
 DEBUG_OPTS = -g3 -gdwarf-2 -ggdb

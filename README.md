@@ -3,6 +3,13 @@ Orbuculum + BackOrb - ARM Cortex Debug and Output Processing Tools
 
 *** THIS IS THE DEVELOPMENT BRANCH - ARE YOU SURE YOU WANT TO BE HERE? ***
 
+* Latest Changes:
+After some time away, I'm finally back onto this and have pulled in a number of changes that people have submitted. The most important of these is that the gdbinit has been changed to refer to _SWO_ and not _SWD_. Sorry, that may mean slight changes to your startup scripts.
+
+The CHANGES file now tells you what's been done when.
+
+Orbuculum now has an active Gitter channel at https://gitter.im/orbcode/orbuculum ... come join the discussion.
+
 An Orbuculum is a Crystal Ball, used for seeing things that would 
  be otherwise invisible. A  nodding reference to (the) BlackMagic
  (debug probe), BMP.
@@ -10,10 +17,9 @@ An Orbuculum is a Crystal Ball, used for seeing things that would
 You can find information about using this suite on the Embedded Rambling
 blog at http://shadetail.com/.
 
-*This program is in heavy development. Check back frequently for new versions 
-with additional functionality. The current status (23rd Feb) is that the fpga
-code appears stable for 1, 2 and 4 bit parallel port operation, and Blackmagic Probe has been
-integrated too...see the documentation in the orbtrace directory for more information.
+*This program is back in development after far too long away. Development on the fpga is now underway but stability and functional fixes will continue to be made on master.*
+
+For the current development status you will need to use the blackorb branch. The majority of effort at the moment is being spent on the fpga parallel trace activity.
 
 The code is in daily use now and small issues
 are patched as they are found. The parallel trace hardware using a iCE40HX-8K breakout board and the icestorm tools is stable and hardware is in development.
@@ -80,6 +86,7 @@ from the target;
 * generic USB TTL Serial Interfaces
 * FTDI High speed serial interfaces
 * The ice40-HX8K Breakout Board for parallel trace.
+* Anything capable of saving the raw SWO data to a file, eg OpenOCD
 
 Information about using each individual interface can be found in the
 docs directory. gdb setup files for each device type can be found in the `Support` directory.
@@ -184,9 +191,20 @@ replace them with the following;
 Building
 ========
 
+Dependencies
+------------
+* libusb-1.0
+* libbfd (binutils-devel)
+* libelf (elfutils-libelf)
+* libftdi (For FPGA support only)
+
 The command line to build the Orbuculum tool suite is;
 
 make
+
+or
+
+make WITH_FPGA=0 if you don't need the fpga trace capture support.
 
 ...you may need to change the paths to your libusb files, depending on
 how well your build environment is set up.

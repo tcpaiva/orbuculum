@@ -8,11 +8,16 @@ GDB SWO Trace Configuration Helpers
 
 Setup Device
 ------------
-enableSTM32SWO    : Enable SWO on STM32 pins
-enableIMXRTSWO    : Enable SWO on IMXRT pins
-prepareSWD        : Prepare SWD output in specified format
-enableSTM32TRACE  : Enable TRACE on STM32 pins
-prepareTRACE      : Prepare TRACE output in specified format
+STM32;
+  enableSTM32SWO  : Enable SWO on STM32 pins (for STM32F4 if 4 is passed as first argument)
+  enableSTM32TRACE: Enable TRACE on STM32 pins
+
+IMXRT;
+  enableIMXRTSWO  : Enable SWO on IMXRT pins
+
+All;
+  prepareSWO      : Prepare SWO output in specified format
+  prepareTRACE    : Prepare TRACE output in specified format
 
 Configure DWT
 -------------
@@ -33,9 +38,9 @@ dwtCycEna         : Enable or disable CYCCNT
 Configure ITM
 -------------
 ITMId             : Set the ITM ID for this device
-ITMGTSFreq        : Set Global Timestamp frequency 
+ITMGTSFreq        : Set Global Timestamp frequency
 ITMTSPrescale     : Set Timestamp Prescale
-ITMSWDEna         : TS counter uses Processor Clock, or clock from TPIU Interface
+ITMSWOEna         : TS counter uses Processor Clock, or clock from TPIU Interface
 ITMTXEna          : Control if DWT packets are forwarded to the ITM
 ITMSYNCEna        : Control if sync packets are transmitted
 ITMTSEna          : Enable local timestamp generation
@@ -47,15 +52,36 @@ end
 # ====================================================================
 # ====================================================================
 define enableSTM32SWO
-  # RCC->APB2ENR |= RCC_APB2ENR_AFIOEN
-  set *0x40021018 |= 1
-  #  AFIO->MAPR |= (2 << 24) // Disable JTAG to release TRACESWO
-  set *0x40010004 |= 0x2000000
-  #  DBGMCU->CR |= DBGMCU_CR_TRACE_IOEN;
-  set *0xE0042004 |= 0x20 
+  set $tgt=1
+  if $argc >= 1
+    set $tgt = $arg0
+  end
+  if ($tgt==4)
+    # STM32F4 variant.
+    # Enable AHB1ENR
+    set *0x40023830 |= 0x02
+    # Set MODER for PB3
+    set *0x40020400 &= ~(0x000000C0)
+    set *0x40020400 |= 0x00000080
+    # Set max (100MHz) speed in OSPEEDR
+    set *0x40020408 |= 0x000000C0
+    # No pull up or down in PUPDR
+    set *0x4002040C &= ~(0x000000C0)
+    # Set AF0 (==TRACESWO) in AFRL
+    set *0x40020420 &= ~(0x0000F000)
+  else
+    # STM32F1 variant.
+    # RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
+    set *0x40021018 |= 1
+    # AFIO->MAPR |= (2 << 24); // Disable JTAG to release TRACESWO
+    set *0x40010004 |= 0x2000000
+  end
+  # Common initialisation.
+  # DBGMCU->CR |= DBGMCU_CR_TRACE_IOEN;
+  set *0xE0042004 |= 0x20
 end
 document enableSTM32SWO
-enableSTM32SWD Configure output pin on STM32 for SWO use.
+enableSTM32SWO Configure output pin on STM32 for SWO use.
 end
 # ====================================================================
 define enableIMXRTSWO
@@ -139,12 +165,12 @@ prepareTRACE <Width>: Prepare TRACE output in specified format
   <Width>   : Number of bits wide (1,2 or 4 only)
 end
 # ====================================================================
-define prepareSWD
+define prepareSWO
   set $clockspeed=72000000
   set $speed=2250000
   set $useTPIU=1
   set $useMan=0
-  
+
   if $argc >= 1
     set $clockspeed = $arg0
   end
@@ -162,11 +188,12 @@ define prepareSWD
   end
 
   # Make sure we can get to everything
+  set *0xe0000fb0 = 0xc5acce55
   set *0xe0041fb0 = 0xc5acce55
 
   # Enable DEMCR TRCENA
   set *0xE000EDFC|=(1<<24)
-  
+
   if ($useMan==0)
     # Use Async mode pin protocol
     set *0xE00400F0 = 2
@@ -193,8 +220,8 @@ define prepareSWD
   set *0xe0001000 = 0
   set *0xe0000e80 = 0
 end
-document prepareSWD
-prepareSWD <ClockSpd> <Speed> <UseTPIU> <UseMan>: Prepare output trace data port at specified speed
+document prepareSWO
+prepareSWO <ClockSpd> <Speed> <UseTPIU> <UseMan>: Prepare output trace data port at specified speed
   <ClockSpd>: Speed of the CPU SystemCoreClock
   <Speed>   : Speed to use (Ideally an integer divisor of SystemCoreClock)
   <UseTPIU> : Set to 1 to use TPIU
@@ -456,7 +483,7 @@ define ITMSWOEna
   end
 end
 document ITMSWOEna
-ITMSWDEna <0|1> 0-TS counter uses Processor Clock, 
+ITMSWOEna <0|1> 0-TS counter uses Processor Clock
                 1-TS counter uses clock from TPIU Interface, and is held in reset while the output line is idle.
 end
 # ====================================================================
