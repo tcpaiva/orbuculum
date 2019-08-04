@@ -8,7 +8,8 @@ GDB SWO Trace Configuration Helpers
 
 Setup Device
 ------------
-enableSTM32SWD    : Enable SWO on STM32 pins
+enableSTM32SWO    : Enable SWO on STM32 pins
+enableIMXRTSWO    : Enable SWO on IMXRT pins
 prepareSWD        : Prepare SWD output in specified format
 enableSTM32TRACE  : Enable TRACE on STM32 pins
 prepareTRACE      : Prepare TRACE output in specified format
@@ -45,16 +46,33 @@ end
 # ====================================================================
 # ====================================================================
 # ====================================================================
-define enableSTM32SWD
-  # RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
+define enableSTM32SWO
+  # RCC->APB2ENR |= RCC_APB2ENR_AFIOEN
   set *0x40021018 |= 1
-  #  AFIO->MAPR |= (2 << 24); // Disable JTAG to release TRACESWO
+  #  AFIO->MAPR |= (2 << 24) // Disable JTAG to release TRACESWO
   set *0x40010004 |= 0x2000000
   #  DBGMCU->CR |= DBGMCU_CR_TRACE_IOEN;
   set *0xE0042004 |= 0x20 
 end
-document enableSTM32SWD
+document enableSTM32SWO
 enableSTM32SWD Configure output pin on STM32 for SWO use.
+end
+# ====================================================================
+define enableIMXRTSWO
+  # Enable Trace Clocks
+  set *0x400FC068|=(3<<22)
+
+  # Set AD_B0_11 to be SWO
+  set *0x401F80E8=6
+
+  # set output characteristics for AD_B0_11
+  set *0x401F825C=0x99
+
+  # Enable trace support in DBGMCU
+  set *0xE0042004 |= 0x20
+end
+document enableIMXRTSWO
+enableIMXRTSWO Configure output pin on IMXRT for SWO use.
 end
 # ====================================================================
 define enableSTM32TRACE
@@ -112,7 +130,7 @@ define prepareTRACE
      # Flush all initial configuration
      set *0xe000edfc |= 0x1000000
      set *0xe0001000 = 0
-     set *0xe0000fb0 = 0xc5acce55
+     set *0xe0001fb0 = 0xc5acce55
      set *0xe0000e80 = 0
   end
 end
@@ -144,11 +162,10 @@ define prepareSWD
   end
 
   # Make sure we can get to everything
-  set *0xe0000fb0 = 0xc5acce55
-  set *0xe0041fb0 = 0xc5acce55  
+  set *0xe0041fb0 = 0xc5acce55
 
   # Enable DEMCR TRCENA
-  set *0xE000EDFC=(1<<24)
+  set *0xE000EDFC|=(1<<24)
   
   if ($useMan==0)
     # Use Async mode pin protocol
@@ -389,7 +406,7 @@ define ITMId
   if (($argc!=1) || ($arg0<0) || ($arg0>127))
     help ITMBusId
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     set *0xe0000e80 &= ~(0x7F<<16)
     set *0xe0000e80 |= (($arg0&0x7f)<<16)
   end
@@ -402,7 +419,7 @@ define ITMGTSFreq
   if (($argc!=1) || ($arg0<0) || ($arg0>3))
     help ITMGTSFreq
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     set *0xe0000e80 &= ~(0x3<<10)
     set *0xe0000e80 |= (($arg0&3)<<10)
   end
@@ -417,7 +434,7 @@ define ITMTSPrescale
   if (($argc!=1) || ($arg0<0) || ($arg0>3))
     help ITMGTSFreq
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     set *0xe0000e80 &= ~(0x3<<8)
     set *0xe0000e80 |= (($arg0&3)<<8)
   end
@@ -430,7 +447,7 @@ define ITMSWOEna
   if (($argc!=1) || ($arg0<0) || ($arg0>1))
     help ITMSWOEna
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     if ($arg0==0)
       set *0xe0000e80 &= ~(0x1<<4)
     else
@@ -447,7 +464,7 @@ define ITMTXEna
   if (($argc!=1) || ($arg0<0) || ($arg0>1))
     help ITMTXEna
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     if ($arg0==0)
       set *0xe0000e80 &= ~(0x1<<3)
     else
@@ -464,7 +481,7 @@ define ITMSYNCEna
   if (($argc!=1) || ($arg0<0) || ($arg0>1))
     help ITMSYNCEna
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     if ($arg0==0)
       set *0xe0000e80 &= ~(0x1<<2)
     else
@@ -481,7 +498,7 @@ define ITMTSEna
   if (($argc!=1) || ($arg0<0) || ($arg0>1))
     help ITMTSEna
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     if ($arg0==0)
       set *0xe0000e80 &= ~(0x1<<1)
     else
@@ -497,7 +514,7 @@ define ITMEna
   if (($argc!=1) || ($arg0<0) || ($arg0>1))
     help ITMEna
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     if ($arg0==0)
       set *0xe0000e80 &= ~(0x1<<0)
     else
@@ -513,7 +530,7 @@ define ITMTER
   if (($argc!=2) || ($arg0<0) || ($arg0>7))
     help ITMTER
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     set *(0xe0000e00+4*$arg0) = $arg1
   end
 end
@@ -525,7 +542,7 @@ define ITMTPR
   if ($argc!=1)
     help ITMTPR
   else
-    set *0xe0000fb0 = 0xc5acce55
+    set *0xe0001fb0 = 0xc5acce55
     set *0xe0000e40 = $arg0 
   end
 end

@@ -1164,11 +1164,15 @@ int _processOptions( int argc, char *argv[] )
         return false;
     }
 
+#ifdef INCLUDE_FPGA_SUPPORT
+
     if ( ( options.orbtrace ) && !( ( options.orbtraceWidth == 1 ) || ( options.orbtraceWidth == 2 ) || ( options.orbtraceWidth == 4 ) ) )
     {
         genericsReport( V_ERROR, "Orbtrace interface illegal port width" EOL );
         return false;
     }
+
+#endif
 
     /* ... and dump the config if we're being verbose */
     genericsReport( V_INFO, "Orbuculum V" VERSION " (Git %08X %s, Built " BUILD_DATE ")" EOL, GIT_HASH, ( GIT_DIRTY ? "Dirty" : "Clean" ) );
@@ -1537,8 +1541,8 @@ int fpgaFeeder( void )
         }
 
         TPIUDecoderForceSync( &_r.t, 0 );
-	ITMDecoderInit( &_r.i, true );
-	
+        ITMDecoderInit( &_r.i, true );
+
         while ( !_r.feederExit )
         {
             if ( _r.dbgWriteLen )

@@ -26,7 +26,7 @@
 
 #define _GNU_SOURCE
 
-#include <ftdi.h>
+#include <libftdi1/ftdi.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
