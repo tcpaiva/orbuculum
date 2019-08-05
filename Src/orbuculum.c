@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <string.h>
+#include <semaphore.h>
 #if defined OSX
     #include <sys/ioctl.h>
     #include <libusb.h>
@@ -202,6 +203,8 @@ struct
 {
     struct channelRuntime c[NUM_CHANNELS + 1];   /* Output for each channel */
     struct nwClient *firstClient;                /* Head of linked list of network clients */
+    sem_t clientList;                              /* Locking semaphore for list of network clients */
+
     pthread_t ipThread;                          /* The listening thread for n/w clients */
 
     /* Timestamp info */
@@ -262,9 +265,6 @@ static void *_runFifo( void *arg )
         return NULL;
     }
 
-    /* Don't kill this sub-process when any reader or writer evaporates */
-    signal( SIGPIPE, SIG_IGN );
-
     while ( 1 )
     {
         /* This is the child */
@@ -310,9 +310,6 @@ static void *_runHWFifo( void *arg )
     {
         return NULL;
     }
-
-    /* Don't kill this sub-process when any reader or writer evaporates */
-    signal( SIGPIPE, SIG_IGN );
 
     while ( 1 )
     {
@@ -453,6 +450,9 @@ static void *_client( void *args )
             close( params->portNo );
             close( params->listenHandle );
 
+            /* First of all, make sure we can get access to the client list */
+            sem_wait( &_r.clientList );
+
             if ( params->client->prevClient )
             {
                 params->client->prevClient->nextClient = params->client->nextClient;
@@ -466,6 +466,9 @@ static void *_client( void *args )
             {
                 params->client->nextClient->prevClient = params->client->prevClient;
             }
+
+            /* OK, we made our modifications */
+            sem_post( &_r.clientList );
 
             return NULL;
         }
@@ -509,6 +512,8 @@ static void *_listenTask( void *arg )
                 pthread_detach( params->client->thread );
 
                 /* Hook into linked list */
+                sem_wait( &_r.clientList );
+
                 params->client->nextClient = _r.firstClient;
                 params->client->prevClient = NULL;
 
@@ -518,6 +523,8 @@ static void *_listenTask( void *arg )
                 }
 
                 _r.firstClient = params->client;
+
+                sem_post( &_r.clientList );
             }
         }
     }
@@ -578,11 +585,15 @@ static void _sendToClients( uint32_t len, uint8_t *buffer )
 {
     struct nwClient *n = _r.firstClient;
 
+    sem_wait( &_r.clientList );
+
     while ( n )
     {
         write( n->handle, buffer, len );
         n = n->nextClient;
     }
+
+    sem_post( &_r.clientList );
 }
 // ====================================================================================================
 void _handleException( struct ITMDecoder *i, struct ITMPacket *p )
@@ -985,9 +996,10 @@ void _protocolPump( uint8_t c )
     }
 }
 // ====================================================================================================
-void intHandler( int dummy )
+static void _intHandler( int sig, siginfo_t *si, void *unused )
 
 {
+    /* CTRL-C exit is not an error... */
     exit( 0 );
 }
 // ====================================================================================================
@@ -1564,23 +1576,21 @@ int serialFeeder( void )
 
         if ( ( flags = fcntl( f, F_GETFL, NULL ) ) < 0 )
         {
-            genericsReport( V_ERROR, "F_GETFL failed" EOL );
-            exit( -3 );
+            genericsExit( -3, "F_GETFL failed" EOL );
         }
 
         flags &= ~O_NONBLOCK;
 
         if ( ( flags = fcntl( f, F_SETFL, flags ) ) < 0 )
         {
-            genericsReport( V_ERROR, "F_SETFL failed" EOL );
-            exit( -3 );
+            genericsExit( -3, "F_SETFL failed" EOL );
         }
 
 #endif
 
         if ( ( ret = setSerialConfig ( f, options.speed ) ) < 0 )
         {
-            exit ( ret );
+            genericsExit( ret, "setSerialConfig failed" EOL );
         }
 
         while ( ( t = read( f, cbw, TRANSFER_SIZE ) ) > 0 )
@@ -1825,8 +1835,7 @@ int fileFeeder( void )
 
     if ( ( f = open( options.file, O_RDONLY ) ) < 0 )
     {
-        genericsReport( V_ERROR, "Can't open file %s" EOL, options.file );
-        exit( -4 );
+        genericsExit( -4, "Can't open file %s" EOL, options.file );
     }
 
     genericsReport( V_INFO, "Reading from file" EOL );
@@ -1859,30 +1868,49 @@ int fileFeeder( void )
 int main( int argc, char *argv[] )
 
 {
+    sigset_t set;
+    struct sigaction sa;
+
     if ( !_processOptions( argc, argv ) )
     {
-        exit( -1 );
+        genericsExit( -1, "processOptions failed" EOL );
     }
 
     atexit( _removeFifoTasks );
+
+    sem_init( &_r.clientList, 0, 1 );
 
     /* Reset the TPIU handler before we start */
     TPIUDecoderInit( &_r.t );
     ITMDecoderInit( &_r.i, options.forceITMSync );
 
     /* This ensures the atexit gets called */
-    signal( SIGINT, intHandler );
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset( &sa.sa_mask );
+    sa.sa_sigaction = _intHandler;
+
+    if ( sigaction( SIGINT, &sa, NULL ) == -1 )
+    {
+        genericsExit( -1, "Failed to establish Int handler" EOL );
+    }
+
+    /* Don't kill a sub-process when any reader or writer evaporates */
+    sigemptyset( &set );
+    sigaddset( &set, SIGPIPE );
+
+    if ( pthread_sigmask( SIG_BLOCK, &set, NULL ) == -1 )
+    {
+        genericsExit( -1, "Failed to establish Int handler" EOL );
+    }
 
     if ( !_makeFifoTasks() )
     {
-        genericsReport( V_ERROR, "Failed to make channel devices" EOL );
-        exit( -1 );
+        genericsExit( -1, "Failed to make channel devices" EOL );
     }
 
     if ( !_makeServerTask( options.listenPort ) )
     {
-        genericsReport( V_ERROR, "Failed to make network server" EOL );
-        exit( -1 );
+        genericsExit( -1, "Failed to make network server" EOL );
     }
 
     /* Make sure there's an initial timestamp to work with */
