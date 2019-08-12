@@ -30,24 +30,24 @@ update_compile_order -fileset sources_1
 synth_design 
 write_checkpoint -force "${::build_dir}/post_synth.dcp"
 
-opt_design
-write_checkpoint -force "${::build_dir}/post_opt.dcp"
-
-place_design
-phys_opt_design
-write_checkpoint -force "${::build_dir}/post_place.dcp"
-report_clock_utilization -file "${::build_dir}/clock_util.rpt"
-report_utilization -file "${::build_dir}/post_place_util.rpt"
-report_timing_summary -file "${::build_dir}/post_place_timing_summary.rpt"
-
-route_design -directive Explore
-write_checkpoint -force "${::build_dir}/post_route.dcp"
-report_route_status -file "${::build_dir}/post_route_status.rpt"
-report_timing_summary -file "${::build_dir}/post_route_timing_summary.rpt"
-report_power -file "${::build_dir}/post_route_power.rpt"
-report_drc -file "${::build_dir}/post_imp_drc.rpt"
-
-write_bitstream -force "${::build_dir}/orbtrace.bit"
+# opt_design
+# write_checkpoint -force "${::build_dir}/post_opt.dcp"
+# 
+# place_design
+# phys_opt_design
+# write_checkpoint -force "${::build_dir}/post_place.dcp"
+# report_clock_utilization -file "${::build_dir}/clock_util.rpt"
+# report_utilization -file "${::build_dir}/post_place_util.rpt"
+# report_timing_summary -file "${::build_dir}/post_place_timing_summary.rpt"
+# 
+# route_design -directive Explore
+# write_checkpoint -force "${::build_dir}/post_route.dcp"
+# report_route_status -file "${::build_dir}/post_route_status.rpt"
+# report_timing_summary -file "${::build_dir}/post_route_timing_summary.rpt"
+# report_power -file "${::build_dir}/post_route_power.rpt"
+# report_drc -file "${::build_dir}/post_imp_drc.rpt"
+# 
+# write_bitstream -force "${::build_dir}/orbtrace.bit"
 
 start_gui
 

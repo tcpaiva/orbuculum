@@ -42,3 +42,40 @@ When you start this version of orbuculum it will start a BlackMagic Probe servic
 
 Once again, this is incomplete and functionally dodgy. Use at your own risk!!
 
+
+Porting to Zynq
+===============
+
+Orbtrace is being ported to Zynq architecture and plan is to support Zedboard and Zybo development kits for now, both of them are based on the same 7z020 parts. The directory tree of the project was changed a bit to minimize repeated code. Also, implementation scripts compatible with Xilinx tools are under development, plans are to make it compatible with Make tools.
+
+
+Directory structure
+-------------------
+
+A `target` directory was created to hold files specific to boards, such as constraints. In that folder, there is a `config.tcl` file that provides information needed by the implementation scripts. Inside `src` folder, a `arch` directory was created for files needed by a specific chip. Arch and target names are likely to change in the near future.
+
+
+Implementing the code
+---------------------
+
+A `tcl` library (for Xilinx's sake) was written to simplify the instructions (and how it is inserted) in the `config.tcl` file. The only other important file for users is the `build.sh` wrapper (which will call the work horse `build.tcl` script file). Assuming the command line prompt isTo compile the code, the following command should be used: 
+
+  ```sh
+  bash <orbtrace folder>/tools/build.sh <Vivado path> <target folder>
+  ```
+
+For example, if I am in the `orbuculum/orbtrace` directory, if I have Vivado 2018.3 installed in my system in the `opt/Xilinx/2018.3` folder and if I want to implement the zedboard target (the only available right now x):
+
+  ```sh
+  bash tools/build.sh /opt/Xilinx/Vivado/2018.3 target/zedboard
+  ```
+
+NB: It should not matter where in the directory tree the commands above are issued.
+
+NB: The full implementation flow is available in the `build.tcl` file, but it is commented out since we are in the early stages of the porting.
+
+
+Shortcomings
+------------
+
+- No constraint file included yet.
