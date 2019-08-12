@@ -79,23 +79,20 @@ module topLevel(
    wire 		   swclk;
    
    
-  
+   
 `ifdef NO_GB_IO_AVAILABLE
-// standard input pin for trace clock,
-// then route it into an internal global buffer.
-SB_GB BtraceClk0 (
- .USER_SIGNAL_TO_GLOBAL_BUFFER(traceClk),
- .GLOBAL_BUFFER_OUTPUT(BtraceClk)
- );
+   // standard input pin for trace clock,
+   // then route it into an internal global buffer.
+   input_global_buffer BtraceClk0 
+     (.i(traceClk),
+      .o(BtraceClk));
 `else
-// Buffer for trace input clock
-SB_GB_IO #(.PIN_TYPE(6'b0000_00)) BtraceClk0
-(
-  .PACKAGE_PIN(traceClk),
-  .GLOBAL_BUFFER_OUTPUT(BtraceClk)
-);
+   // Buffer for trace input clock
+   input_io_buffer BtraceClk0
+     (.i(traceClk),
+      .o(BtraceClk));
 `endif
-
+   
 `ifdef INCLUDE_SWD
 SB_IO #(.PULLUP(1), .PIN_TYPE(6'b1010_01)) SwdDatPin
 (

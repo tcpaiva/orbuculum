@@ -3,29 +3,29 @@
 // packSend
 // ========
 //
-module packSend (
-		input 	      clk, // System Clock
-		input 	      rst, // Clock synchronised reset
-		
-		input 	      sync, // Indicator of if we are in sync
-		
-	        // Downwards interface to packet processor : wrClk Clock
-		input 	      wrClk, // Clock for write side operations to fifo
-		input 	      WdAvail, // Flag indicating word is available
-		input 	      PacketReset, // Flag indicating to start again
-		input [15:0]  PacketWd, // The next packet word
-
-		// Upwards interface to serial (or other) handler : clk Clock
-		output [15:0] DataVal, // Output data value
-
-		input 	      rdClk,
-		input 	      DataNext, // Request for next data element
-		output reg    DataReady, // Indicator that the next data element is available
-		input 	      DataFrameReset, // Reset to start of data frame
-		output reg    FrameReady, // Indicator that a complete frame of data is available
- 
-		output 	      DataOverf // Too much data in buffer
- 		);
+module
+   packSend (input wire    clk, // System Clock
+             input wire    rst, // Clock synchronised reset
+             
+             input wire    sync, // Indicator of if we are in sync
+	     
+	     // Downwards interface to packet processor : wrClk Clock
+             input wire         wrClk, // Clock for write side operations to fifo
+             input wire         WdAvail, // Flag indicating word is available
+             input wire         PacketReset, // Flag indicating to start again
+             input wire  [15:0] PacketWd, // The next packet word
+             
+	     // Upwards interface to serial (or other) handler : clk Clock
+             output reg  [15:0] DataVal, // Output data value
+             
+             input  wire rdClk,
+             input  wire DataNext, // Request for next data element
+             output wire DataReady, // Indicator that the next data element is available
+             input  wire DataFrameReset, // Reset to start of data frame
+             output wire FrameReady, // Indicator that a complete frame of data is available
+             
+             output wire DataOverf // Too much data in buffer
+             );
 
    // Internals ==============================================================================
    parameter BUFFLENLOG2=10;
@@ -140,7 +140,6 @@ module packSend (
 	     ovfStretch<=0;
 	     outputRp<=0;
 	     odd<=0;
-	     DataReady<=0;
 	     tickA2B<=0;
 	     outputRpPostBox<=0;
 	     lastTickA<=0;

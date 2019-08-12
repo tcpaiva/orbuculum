@@ -3,71 +3,118 @@
 // SPI Interface for ft2232h to fpga
 // =================================
 //
-// This module is a hack. It implements a trivial protocol to/from the host
-// machine over the SPI link. Since the fpga-side SPI can only operate in slave mode
-// with the ft2232 we need to indicate in data packets if the data is valid. We
-// transfer both debug management information (gdb reads and writes) and SWO data
-// over this link.  It's a grubby hack, but it allows the use of the dev boards for
+// This module is a hack. It implements a trivial protocol to/from the
+// host machine over the SPI link. Since the fpga-side SPI can only
+// operate in slave mode with the ft2232 we need to indicate in data
+// packets if the data is valid. We transfer both debug management
+// information (gdb reads and writes) and SWO data over this link.
+// It's a grubby hack, but it allows the use of the dev boards for
 // development purposes, so don't complain too much.
 //
-// Copyright (C) 2018  Dave Marples  <dave@marples.net>
+// Copyright (C) 2018 Dave Marples <dave@marples.net>
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+// This program is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// along with this program.  If not, see
+// <http://www.gnu.org/licenses/>.
 //
 
-module spi (
-	    input 	      clk,                       // The master clock for this module
-	    input 	      rst,                       // Synchronous reset.
+module 
+   spi (input wire         clk, // The master clock for this module
 
-	    // Interface to the SPI line
-	    // =========================
-	    input 	      sel,                       // Select bit
-	    output 	      tx,                        // Outgoing serial line (MISO)
-	    input 	      rx,                        // Incoming serial line (MOSI)
- 	    input 	      dClk,                      // Incoming data clock (asynchronous)
+	input wire         rst, // Synchronous reset.
+        
+	// Interface to the SPI line
+	// =========================
 
-	    // Interface to/from Parallel Trace subsystem
-	    // ==========================================
-	    input 	      transmitIn,                // Signal to transmit
-	    input [15:0]      tx_word,                   // Byte to transmit
-	    output 	      tx_free,                   // Indicator that transmit register is available
-	    output 	      is_transmitting,           // Low when transmit line is idle.
-	    input 	      sync,                      // Flag indicating that Parallel Trace is synchronised  
-	    output [2:0]      widthEnc,                  // Set width of Parallel trace pins
-	    output 	      rxFrameReset,              // Reset to start of current frame (of 16 octets)
+	input wire         sel, // Select bit
 
-	    // Interface to/from SWD subsystem
-	    // ===============================
-	    output 	      rxReq,                     // Request reception over SWD
-	    output 	      txReq,                     // Request transmission over SWD
-	    output 	      useParity,                 // Do we want parity support for this transaction
-	    output reg [31:0] SWDinputData,              // Data to go over SWD bus
-	    output [4:0]      bits,                      // Number of bits for SWD bus (rx or tx)
-	    input [31:0]      SWDoutputData,             // Data sourced from SWD bus
-	    input 	      SWDoutputParity,           // Receive parity sourced from SWD bus
-	    input 	      SWDbusy                    // Flag indicating SWD bus is busy
-	    );
+	output reg         tx, // Outgoing serial line (MISO)
+
+	input wire         rx, // Incoming serial line (MOSI)
+
+ 	input wire         dClk, // Incoming data clock (asynchronous)
+        
+	// Interface to/from Parallel Trace subsystem
+	// ==========================================
+	input wire         transmitIn, // Signal to trqansmit
+
+	input wire [15:0]  tx_word, // Byte to transmit
+
+	output reg         tx_free, // Indicator that transmit
+                                    // register is available
+
+	output wire        is_transmitting, // Low when transmit line
+                                            // is idle.
+
+	input wire         sync, // Flag indicating that Parallel
+                                 // Trace is synchronised
+
+	output reg  [2:0]  widthEnc, // Set width of Parallel trace
+                                     // pins
+
+	output reg         rxFrameReset, // Reset to start of current
+                                         // frame (of 16 octets)
+        
+	// Interface to/from SWD subsystem
+	// ===============================
+
+	output reg         rxReq, // Request reception over SWD
+
+	output reg         txReq, // Request transmission over SWD
+
+	output reg         useParity, // Do we want parity support for
+                                      // this transaction
+
+	output reg [31:0]  SWDinputData, // Data to go over SWD bus
+
+	output reg [ 4:0]  bits, // Number of bits for SWD bus (rx or
+                                 // tx)
+
+	input wire [31:0]  SWDoutputData, // Data sourced from SWD bus
+
+	input wire         SWDoutputParity, // Receive parity sourced
+                                            // from SWD bus
+
+	input wire         SWDbusy);        // Flag indicating SWD bus
+                                            // is busy
    
-   reg 			 realTransmission;    // Is this real data or an empty frame
-   reg [1:0] 		 width;               // How wide the pins are on the CPU (0-->1, 1-->2, 2-->x, 3-->4)
+   reg                     realTransmission;    // Is this real data
+                                                // or an empty frame
+   reg [1:0]               width;               // How wide the pins
+                                                // are on the CPU
+                                                // (0-->1, 1-->2,
+                                                // 2-->x, 3-->4)
  			 
-   reg [15:0] 		 tx_ledstretch;       // Stretch the LED so it can be seen
-   reg  		 twobytes;            // How many bytes in this word of the frame left?
-   reg [3:0] 		 words_remaining;     // How many words in this frame left
-   reg [15:0] 		 tx_data;             // Holding for the data being shifted to line
-   reg [7:0] 		 rx_data;             // Holding for the data being received from line
-   reg [2:0] 		 bitcount;            // Number of bits of this byte rxed (or txed) so far
+   reg [15:0]  		 tx_ledstretch;       // Stretch the LED so it
+                                              // can be seen
+   
+   reg  		 twobytes;            // How many bytes in
+                                              // this word of the
+                                              // frame left?
+   
+   reg [3:0] 		 words_remaining;     // How many words in
+                                              // this frame left
+   
+   reg [15:0] 		 tx_data;             // Holding for the data
+                                              // being shifted to line
+   
+   reg [7:0] 		 rx_data;             // Holding for the data
+                                              // being received from
+                                              // line
+   
+   reg [2:0] 		 bitcount;            // Number of bits of
+                                              // this byte rxed (or
+                                              // txed) so far
 	
    reg 			 prevSel;
    reg 			 selEdge;

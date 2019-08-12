@@ -18,3 +18,6 @@ sump2/*vcd
 sump2/sump2_log.txt
 sump2/sump2_rle_cull_list.txt
 sump2/sump2_rle_dump.txt
+.Xil
+build
+*.str

@@ -2,42 +2,56 @@
 
 // traceIF
 // =======
-// Concatenates defined bus width input data from TRACEDATA using TRACECLK to bring it into
-// 16 bit chunks which are stored in memory if they're not 'pass' cases. Also deals with top
-// level sync. Above this level nothing needs to know how wide the tracebus actually is.
+//
+// Concatenates defined bus width input data from TRACEDATA using
+// TRACECLK to bring it into 16 bit chunks which are stored in memory
+// if they're not 'pass' cases. Also deals with top level sync. Above
+// this level nothing needs to know how wide the tracebus actually is.
 // 
-// Working from CoreSight TPIU-Lite Technical Reference Manual Revision: r0p0
+// Working from CoreSight TPIU-Lite Technical Reference Manual
+// Revision: r0p0
 
-module traceIF # (parameter BUSWIDTH = 4) (
-		input 		     clk,         // System Clock
-		input 		     rst,         // Reset synchronised to clock
+module traceIF # (parameter BUSWIDTH = 4) 
+   (input wire                clk,         // System Clock
+    input wire                rst,         // Reset synchronised to
+                                           // clock
+    
+    // Downwards interface to the trace pins
+    input wire [BUSWIDTH-1:0] traceDina,   // Tracedata rising
+                                           // edge... 1-n bits max,
+                                           // can be less
+    input wire [BUSWIDTH-1:0] traceDinb,   // Tracedata falling
+                                           // edge... 1-n bits max,
+                                           // can be less
+    input wire                traceClkin,  // Tracedata clock... async
+                                           // to clk
+    input wire [2:0]          width,       // How wide the bus under
+                                           // consideration is 1..4
+                                           // (0, 3 & >4 invalid)
+    
+    // Upwards interface to packet processor
+    output reg                WdAvail,     // Flag indicating word is
+                                           // available
+    output reg [15:0]         PacketWd,    // The next packet word
+    output reg                PacketReset, // Flag indicating to start
+                                           // again
+    
+    output reg                sync);       // Indicator that we are in
+                                           // sync
 
-	// Downwards interface to the trace pins
-		input [BUSWIDTH-1:0] traceDina,   // Tracedata rising edge... 1-n bits max, can be less
-		input [BUSWIDTH-1:0] traceDinb,   // Tracedata falling edge... 1-n bits max, can be less
-		input 		     traceClkin,  // Tracedata clock... async to clk
-		input [2:0] 	     width,       // How wide the bus under consideration is 1..4 (0, 3 & >4 invalid)
-
-	// Upwards interface to packet processor
-		output reg 	     WdAvail,     // Flag indicating word is available
-		output [15:0]        PacketWd,    // The next packet word
-		output reg 	     PacketReset, // Flag indicating to start again
-
-		output 		     sync         // Indicator that we are in sync
-		);		  
    
    // Internals =============================================================================
-
+   
    // Frame maintenance
-   reg [5:0] 	ofs;                      // Offset of useful data in the recieved frame
-   reg [35:0] 	construct;                // Track of data being constructed (extra bits for mis-sync)
-   reg [4:0] 	readBits;                 // How many bits of the sample we have
-
+   reg [5:0]             ofs;                      // Offset of useful data in the recieved frame
+   reg [35:0]            construct;                // Track of data being constructed (extra bits for mis-sync)
+   reg [4:0]             readBits;                 // How many bits of the sample we have
+   
    // Sync checking stuff
-   reg [2:0] 	gotSync;                  // Pulse stretch between domains for sync
-   reg          prevSync;                 // Previous sync state used for detecting edge
-   reg [21:0] 	lostSync;                 // Counter for sync loss timeout
-
+   reg [2:0]             gotSync;                  // Pulse stretch between domains for sync
+   reg                   prevSync;                 // Previous sync state used for detecting edge
+   reg [21:0]            lostSync;                 // Counter for sync loss timeout
+   
    // ================== Input data against traceclock from target system ====================
    always @(posedge traceClkin)
      begin
